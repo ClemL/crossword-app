@@ -92,8 +92,8 @@ committed. The app never generates puzzles at runtime.
 Sources are cached in `scripts/.cache/` (gitignored), so only the first run needs the network.
 
 **No commercial crossword content is used.** Clues are either hand-written here or derived from a
-public-domain dictionary. A clue tagged `(-ED form)` means the answer is that word with the ending
-added — the convention is explained on the home page.
+public-domain dictionary. A clue ending `…, with "ED" added` means exactly that: solve the clue, then add the
+ending — the convention is explained on the home page.
 
 ## Conventions
 

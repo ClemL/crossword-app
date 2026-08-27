@@ -8,7 +8,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildLexicon, indexLexicon, TIER } from "./lib/lexicon.mjs";
+import { buildLexicon, indexLexicon, tierCapForLength, TIER } from "./lib/lexicon.mjs";
 import { analyze, emptyPattern, makeRng, randomPattern } from "./lib/grid.mjs";
 import { createFiller } from "./lib/fill.mjs";
 
@@ -30,7 +30,9 @@ const PLANS = [
     size: "mini",
     count: 20,
     dim: 5,
-    blocks: [0, 2, 4],
+    // A blockless 5x5 is a double word square: possible, but it burns most of
+    // the attempt budget, so keep a couple of blocks.
+    blocks: [2, 2, 4],
     maxRun: 5,
     maxTier: TIER.FAMILIAR,
     par: 240,
@@ -43,8 +45,12 @@ const PLANS = [
     blocks: [54, 56, 58],
     maxRun: 7,
     maxTier: TIER.UNCOMMON,
+    // A 15x15 has many more short entries to fill than a mini, so the
+    // short-answer rule is loosened by one tier here; without it the grids
+    // rarely close.
+    relaxShort: true,
     par: 1500,
-    fill: { timeBudgetMs: 25000, branch: 18, restarts: 2 },
+    fill: { timeBudgetMs: 30000, branch: 20, restarts: 2 },
   },
 ];
 
@@ -91,18 +97,27 @@ async function main() {
   const words = await buildLexicon({ maxTier: TIER.UNCOMMON });
   process.stderr.write(`  ${words.length} clued answers\n`);
 
-  const byTier = new Map();
-  for (const maxTier of new Set(PLANS.map((p) => p.maxTier))) {
-    byTier.set(maxTier, indexLexicon(words.filter((w) => w.tier <= maxTier)));
+  // One index per plan: the plan's ceiling, further tightened for short answers
+  // so a 3x3 never leans on a word nobody has met.
+  const fillers = new Map();
+  const fillerKey = (plan) => `${plan.maxTier}:${plan.relaxShort ? 1 : 0}`;
+  for (const plan of PLANS) {
+    if (fillers.has(fillerKey(plan))) continue;
+    const allowed = words.filter(
+      (w) =>
+        w.tier <=
+        Math.min(plan.maxTier, tierCapForLength(w.word.length) + (plan.relaxShort ? 1 : 0)),
+    );
+    process.stderr.write(`  ${plan.size}: ${allowed.length} answers\n`);
+    fillers.set(fillerKey(plan), createFiller(indexLexicon(allowed)));
   }
-  const fillers = new Map([...byTier].map(([tier, idx]) => [tier, createFiller(idx)]));
 
   const puzzles = [];
   const seenGrids = new Set();
 
   for (const plan of PLANS) {
     const rng = makeRng(0xc0ffee + plan.dim * 7919);
-    const filler = fillers.get(plan.maxTier);
+    const filler = fillers.get(fillerKey(plan));
     let made = 0;
     let attempts = 0;
     const attemptCap = plan.count * 12;

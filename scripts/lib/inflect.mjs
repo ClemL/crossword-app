@@ -4,13 +4,15 @@
 // tagging the base clue with the ending. That keeps every answer honest: the
 // solver is told exactly what transformation to apply.
 
+// Spelled out as an instruction rather than a grammar label: it is always
+// literally true, even where the derived word has drifted from its base.
 const TAGS = {
-  s: "-S form",
-  ed: "-ED form",
-  ing: "-ING form",
-  er: "-ER form",
-  est: "-EST form",
-  ly: "-LY form",
+  s: "S",
+  ed: "ED",
+  ing: "ING",
+  er: "ER",
+  est: "EST",
+  ly: "LY",
 };
 
 const VOWELS = new Set(["A", "E", "I", "O", "U"]);
@@ -68,5 +70,5 @@ export function derive(word) {
 }
 
 export function tagClue(clue, kind) {
-  return `${clue} (${TAGS[kind]})`;
+  return `${clue}, with "${TAGS[kind]}" added`;
 }

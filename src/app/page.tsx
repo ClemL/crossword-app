@@ -113,8 +113,9 @@ export default function HomePage() {
       <footer className="foot">
         <p>
           Clues are built from a hand-written bank plus the public-domain Webster&apos;s 1913
-          dictionary. A tag like <em>(-ED form)</em> means the answer is that word with the ending
-          added.
+          dictionary — so a few read a little antique. A clue ending{" "}
+          <em>&hellip;, with &ldquo;ED&rdquo; added</em> means exactly that: solve the clue, then
+          add the ending.
         </p>
       </footer>
     </main>

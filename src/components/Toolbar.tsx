@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Menu } from "./Menu";
 import { formatDuration } from "@/lib/format";
 import type { GameStatus } from "@/lib/useGame";
@@ -38,6 +39,38 @@ export function Toolbar({
   onTogglePencil,
   onToggleAutocheck,
 }: ToolbarProps) {
+  const item = (label: string, action: () => void, close: () => void): ReactNode => (
+    <button
+      key={label}
+      type="button"
+      onClick={() => {
+        action();
+        close();
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const checkItems = (close: () => void) => [
+    item("Check square", () => onCheck("square"), close),
+    item("Check word", () => onCheck("word"), close),
+    item("Check puzzle", () => onCheck("puzzle"), close),
+    item(autocheck ? "Turn autocheck off" : "Turn autocheck on", onToggleAutocheck, close),
+  ];
+
+  const revealItems = (close: () => void) => [
+    item("Reveal square", () => onReveal("square"), close),
+    item("Reveal word", () => onReveal("word"), close),
+    item("Reveal puzzle", () => onReveal("puzzle"), close),
+  ];
+
+  const moreItems = (close: () => void) => [
+    item("Clear word", () => onClear("word"), close),
+    item("Clear puzzle", () => onClear("puzzle"), close),
+    item("Restart (clock too)", onRestart, close),
+  ];
+
   return (
     <header className="toolbar">
       <div className="toolbar__identity">
@@ -69,45 +102,32 @@ export function Toolbar({
           className={`btn btn--ghost ${pencilMode ? "btn--on" : ""}`}
           onClick={onTogglePencil}
           aria-pressed={pencilMode}
-          title="Pencil mode (P)"
+          title="Pencil mode"
         >
           ✏️ <span className="btn__label">Pencil</span>
         </button>
 
-        <Menu label="Check">
-          {(close) => (
-            <>
-              <button type="button" onClick={() => { onCheck("square"); close(); }}>Square</button>
-              <button type="button" onClick={() => { onCheck("word"); close(); }}>Word</button>
-              <button type="button" onClick={() => { onCheck("puzzle"); close(); }}>Puzzle</button>
-              <hr />
-              <button type="button" onClick={() => { onToggleAutocheck(); close(); }}>
-                {autocheck ? "Turn autocheck off" : "Turn autocheck on"}
-              </button>
-            </>
-          )}
-        </Menu>
+        {/* Three menus on a wide screen; one on a phone, where the labels would
+            squeeze the puzzle title out of the bar entirely. */}
+        <div className="toolbar__wide">
+          <Menu label="Check">{(close) => checkItems(close)}</Menu>
+          <Menu label="Reveal">{(close) => revealItems(close)}</Menu>
+          <Menu label="More">{(close) => moreItems(close)}</Menu>
+        </div>
 
-        <Menu label="Reveal">
-          {(close) => (
-            <>
-              <button type="button" onClick={() => { onReveal("square"); close(); }}>Square</button>
-              <button type="button" onClick={() => { onReveal("word"); close(); }}>Word</button>
-              <button type="button" onClick={() => { onReveal("puzzle"); close(); }}>Puzzle</button>
-            </>
-          )}
-        </Menu>
-
-        <Menu label="More">
-          {(close) => (
-            <>
-              <button type="button" onClick={() => { onClear("word"); close(); }}>Clear word</button>
-              <button type="button" onClick={() => { onClear("puzzle"); close(); }}>Clear puzzle</button>
-              <hr />
-              <button type="button" onClick={() => { onRestart(); close(); }}>Restart (clock too)</button>
-            </>
-          )}
-        </Menu>
+        <div className="toolbar__narrow">
+          <Menu label="⋯">
+            {(close) => (
+              <>
+                {checkItems(close)}
+                <hr />
+                {revealItems(close)}
+                <hr />
+                {moreItems(close)}
+              </>
+            )}
+          </Menu>
+        </div>
       </div>
     </header>
   );

@@ -76,6 +76,11 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   const [autocheck, setAutocheck] = useState(() => (usable ? saved.autocheck : false));
   const [elapsedMs, setElapsedMs] = useState(() => (usable ? saved.elapsedMs : 0));
   const [justSolved, setJustSolved] = useState(false);
+  // Rendered (the completion dialog credits a no-help solve), so this is state
+  // rather than living only in the meta ref.
+  const [usedHelp, setUsedHelp] = useState(
+    () => usable && (saved.checkCount > 0 || saved.revealCount > 0),
+  );
 
   const meta = useRef(
     usable
@@ -116,7 +121,14 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   // --- timer ---------------------------------------------------------------
   useEffect(() => {
     if (status !== "playing") return;
-    const id = window.setInterval(() => setElapsedMs((ms) => ms + TICK_MS), TICK_MS);
+    let last = Date.now();
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      const delta = now - last;
+      last = now;
+      // Clamp so a suspended laptop does not add hours to the clock.
+      setElapsedMs((ms) => ms + Math.min(delta, TICK_MS * 5));
+    }, TICK_MS);
     return () => window.clearInterval(id);
   }, [status]);
 
@@ -203,15 +215,13 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       if (revealed[cursor]) return;
       if (meta.current.startedAt === null) meta.current.startedAt = Date.now();
 
-      setEntries((prev) => {
-        const next = [...prev];
-        next[cursor] = letter.toUpperCase();
-        if (autocheck && next[cursor] !== puzzle.solution[cursor]) {
-          meta.current.mistakes += 1;
-        }
-        queueMicrotask(() => finish(next));
-        return next;
-      });
+      const upper = letter.toUpperCase();
+      const nextEntries = [...entries];
+      nextEntries[cursor] = upper;
+
+      if (autocheck && upper !== puzzle.solution[cursor]) meta.current.mistakes += 1;
+
+      setEntries(nextEntries);
       setPencil((prev) => {
         const next = [...prev];
         next[cursor] = pencilMode;
@@ -219,15 +229,16 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       });
       setMarks((prev) => {
         const next = { ...prev };
-        delete next[cursor];
-        if (autocheck) {
-          next[cursor] = letter.toUpperCase() === puzzle.solution[cursor] ? "correct" : "wrong";
-        }
+        if (autocheck) next[cursor] = upper === puzzle.solution[cursor] ? "correct" : "wrong";
+        else delete next[cursor];
         return next;
       });
+      finish(nextEntries);
 
       if (activeClue) {
-        const step = advance(puzzle, activeClue, cursor, entries, { skipFilled });
+        // Advance against the grid as it is *after* this letter, otherwise the
+        // last square of an entry looks blank and the cursor stays put.
+        const step = advance(puzzle, activeClue, cursor, nextEntries, { skipFilled });
         setCursor(step.cell);
         if (step.clue.direction !== direction) setDirection(step.clue.direction);
       }
@@ -301,6 +312,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   const check = useCallback(
     (scope: "square" | "word" | "puzzle") => {
       meta.current.checkCount += 1;
+      setUsedHelp(true);
       const cells = cellsFor(scope);
       setMarks((prev) => {
         const next = { ...prev };
@@ -319,13 +331,12 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   const reveal = useCallback(
     (scope: "square" | "word" | "puzzle") => {
       meta.current.revealCount += 1;
+      setUsedHelp(true);
       const cells = cellsFor(scope);
-      setEntries((prev) => {
-        const next = [...prev];
-        for (const cell of cells) next[cell] = puzzle.solution[cell];
-        queueMicrotask(() => finish(next));
-        return next;
-      });
+      const next = [...entries];
+      for (const cell of cells) next[cell] = puzzle.solution[cell];
+      setEntries(next);
+      finish(next);
       setRevealed((prev) => {
         const next = [...prev];
         for (const cell of cells) next[cell] = true;
@@ -337,7 +348,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         return next;
       });
     },
-    [cellsFor, puzzle.solution, finish],
+    [cellsFor, entries, puzzle.solution, finish],
   );
 
   const clear = useCallback(
@@ -368,6 +379,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
     setCursor(firstCell);
     setDirection("across");
     setJustSolved(false);
+    setUsedHelp(false);
     setStatus("playing");
   }, [puzzle.solution, size, firstCell]);
 
@@ -396,6 +408,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
 
   return {
     status,
+    usedHelp,
     entries,
     pencil,
     revealed,

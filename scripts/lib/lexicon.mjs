@@ -46,8 +46,15 @@ const STOP_BASES = new Set([
   "BELOW", "AMONG", "UNTIL", "WHILE", "SINCE", "OUGHT", "WHETHER",
 ]);
 
+// Fine words in a dictionary, wrong for a puzzle you might hand to a kid.
+// Matched whole, not as substrings, so CLASS and ASSET are unaffected.
+const BLOCKED_EXACT = new Set([
+  "ASS", "ASSES", "TIT", "TITS", "BUM", "FART", "FARTS", "SNOT", "PUKE",
+  "TURDS", "LOO", "POO", "PEE", "BOOZE", "SOT",
+]);
+
 function blocked(word) {
-  return FOREIGN.has(word) || BLOCKED.some((b) => word.includes(b));
+  return FOREIGN.has(word) || BLOCKED_EXACT.has(word) || BLOCKED.some((b) => word.includes(b));
 }
 
 // Tier drives both eligibility and how eagerly the filler reaches for a word.
@@ -104,7 +111,15 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
   // the "AREST"/"THATS" junk a naive suffix rule produces — and it is also
   // spell-checked against a large word list.
   const realWords = await loadWordSet();
-  const bases = [...entries.values()].filter((e) => e.tier <= TIER.FAMILIAR && !STOP_BASES.has(e.word));
+  // Only derive from words that are genuinely common and whose clue is a
+  // definition. A fill-in-the-blank base ("Cape ___") produces nonsense once an
+  // ending is bolted on.
+  const bases = [...entries.values()].filter(
+    (e) =>
+      !STOP_BASES.has(e.word) &&
+      (e.tier === TIER.CURATED || e.rank < 10_000) &&
+      e.clues.some((c) => !c.includes("___")),
+  );
   for (const base of bases) {
     for (const [form, kind] of derive(base.word)) {
       if (entries.has(form) || blocked(form)) continue;
@@ -114,7 +129,7 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
       if (tier > maxTier) continue;
       entries.set(form, {
         word: form,
-        clues: base.clues.slice(0, 2).map((c) => tagClue(c, kind)),
+        clues: base.clues.filter((c) => !c.includes("___")).slice(0, 2).map((c) => tagClue(c, kind)),
         tier,
         rank: ownRank,
         derived: true,
@@ -129,6 +144,17 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
 
 // Length-bucketed bitset index so the solver can ask "which words fit A_R_?"
 // without scanning the whole bank.
+/**
+ * Short answers show up in every puzzle and are the most jarring when they are
+ * obscure, so the shorter the word the commoner it has to be. Longer entries
+ * are more forgiving because the crossings carry them.
+ */
+export function tierCapForLength(length) {
+  if (length <= 3) return TIER.COMMON;
+  if (length === 4) return TIER.FAMILIAR;
+  return TIER.UNCOMMON;
+}
+
 export function indexLexicon(words) {
   const byLength = new Map();
   for (const entry of words) {

@@ -141,7 +141,6 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
             revealed={game.revealed}
             marks={game.marks}
             cursor={game.cursor}
-            direction={game.direction}
             activeClue={game.activeClue}
             hidden={status === "paused"}
             onSelect={actions.selectCell}
@@ -185,7 +184,7 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
           puzzle={puzzle}
           elapsedMs={game.elapsedMs}
           bestMs={bestMs}
-          clean={game.revealed.every((r) => !r) && !game.autocheck}
+          clean={!game.usedHelp}
           nextHref={next && next.id !== puzzle.id ? `/play?id=${next.id}` : undefined}
           onDismiss={game.dismissSolved}
         />

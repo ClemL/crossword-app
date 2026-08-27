@@ -2,10 +2,6 @@ import type { Clue, Direction, Puzzle } from "./types";
 
 export const BLOCK = "#";
 
-export function isBlock(puzzle: Puzzle, index: number): boolean {
-  return puzzle.solution[index] === BLOCK;
-}
-
 export function cellIndex(puzzle: Puzzle, row: number, col: number): number {
   return row * puzzle.cols + col;
 }
@@ -35,24 +31,6 @@ export function cluesFor(puzzle: Puzzle, direction: Direction): Clue[] {
   return puzzle.clues.filter((c) => c.direction === direction);
 }
 
-export function clueKey(clue: Clue): string {
-  return `${clue.number}${clue.direction === "across" ? "A" : "D"}`;
-}
-
-/** First empty cell of a clue, falling back to its first cell. */
-export function firstBlank(clue: Clue, entries: string[]): number {
-  const blank = clue.cells.find((cell) => !entries[cell]);
-  return blank ?? clue.cells[0];
-}
-
-export function isComplete(puzzle: Puzzle, entries: string[]): boolean {
-  for (let i = 0; i < puzzle.solution.length; i++) {
-    if (puzzle.solution[i] === BLOCK) continue;
-    if (!entries[i]) return false;
-  }
-  return true;
-}
-
 export function isCorrect(puzzle: Puzzle, entries: string[]): boolean {
   for (let i = 0; i < puzzle.solution.length; i++) {
     if (puzzle.solution[i] === BLOCK) continue;
@@ -70,10 +48,6 @@ export function countFilled(puzzle: Puzzle, entries: string[]): { filled: number
     if (entries[i]) filled++;
   }
   return { filled, total };
-}
-
-export function emptyEntries(puzzle: Puzzle): string[] {
-  return puzzle.solution.map((c) => (c === BLOCK ? BLOCK : ""));
 }
 
 /**

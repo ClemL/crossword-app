@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useMemo } from "react";
-import type { Clue, Direction, Puzzle } from "@/lib/types";
+import type { Clue, Puzzle } from "@/lib/types";
 import { BLOCK } from "@/lib/puzzle";
 import type { CheckMark } from "@/lib/useGame";
 
@@ -12,7 +12,6 @@ interface GridProps {
   revealed: boolean[];
   marks: Record<number, CheckMark>;
   cursor: number;
-  direction: Direction;
   activeClue?: Clue;
   hidden?: boolean;
   onSelect: (cell: number) => void;
