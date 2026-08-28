@@ -37,8 +37,15 @@ everything lives on your device.
 | <kbd>Tab</kbd> / <kbd>⇧Tab</kbd> | Next / previous clue                   |
 | <kbd>Backspace</kbd>     | Clear and step back                            |
 | Click the current square | Switch direction                               |
+| <kbd>Ctrl/⌘ Z</kbd>      | Undo                                           |
+| <kbd>Ctrl/⌘ ⇧ Z</kbd>    | Redo                                           |
 
-On touch devices there is an on-screen keyboard and a tappable clue bar.
+On touch devices there is an on-screen keyboard, a tappable clue bar, and an **all clues** button
+that lists every clue with whatever you have already typed into it.
+
+Under **More** in the toolbar: clear incorrect letters (keeping the right ones), clear a word or the
+whole grid, turn skip-filled-squares off, and restart. Solving offers a share card — time, badges
+and the grid's shape — copied to the clipboard or handed to the system share sheet.
 
 ## Development
 

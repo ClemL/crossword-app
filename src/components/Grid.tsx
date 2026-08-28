@@ -59,12 +59,13 @@ function GridImpl({
               key={index}
               type="button"
               className={classes}
-              onMouseDown={(event) => {
-                // Keep focus on the hidden input that drives typing.
+              // One pointer handler, not mousedown plus touchstart: a tap fires
+              // both, which called onSelect twice and so flipped the direction
+              // on every tap. preventDefault keeps focus where typing expects it.
+              onPointerDown={(event) => {
                 event.preventDefault();
                 onSelect(index);
               }}
-              onTouchStart={() => onSelect(index)}
               aria-label={`Row ${Math.floor(index / puzzle.cols) + 1}, column ${(index % puzzle.cols) + 1}${letter ? `, ${letter}` : ", empty"}`}
               tabIndex={-1}
             >

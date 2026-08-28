@@ -48,7 +48,10 @@ const mine = puzzles.filter((p) => p.user === PLAYER);
 const target = mine.find((p) => p.size === "micro") ?? mine[0];
 
 const browser = await chromium.launch({ executablePath: CHROME });
-const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const context = await browser.newContext({
+  viewport: { width: 1280, height: 900 },
+  permissions: ["clipboard-read", "clipboard-write"],
+});
 const page = await context.newPage();
 
 const problems = [];
@@ -87,13 +90,75 @@ if (theirs) {
   await page.goto(BASE, { waitUntil: "networkidle" });
 }
 
+// --- undo, redo, clear-incorrect and the all-clues panel --------------------
+const scratch = mine.find((p) => p.size === "mini") ?? target;
+await page.goto(`${BASE}/play?id=${scratch.id}`, { waitUntil: "networkidle" });
+await page.waitForSelector(".grid");
+
+const firstAcross = scratch.clues.find((c) => c.direction === "across");
+const lettersNow = () =>
+  page.locator(".cell:not(.cell--block) .cell__letter").allInnerTexts().then((t) => t.join(""));
+
+await page.locator(".grid > *").nth(firstAcross.cells[0]).click();
+if ((await page.locator(".clue-list").first().locator(".clue--active").count()) === 0) {
+  await page.keyboard.press(" ");
+}
+await page.keyboard.type("ZZZ");
+const typed = await lettersNow();
+check("typing lands in the grid", typed.includes("ZZZ"), typed.slice(0, 12));
+
+await page.keyboard.press("Control+z");
+await page.keyboard.press("Control+z");
+await page.keyboard.press("Control+z");
+const undone = await lettersNow();
+check("undo walks the letters back out", !undone.includes("ZZZ"), undone.slice(0, 12) || "(empty)");
+
+await page.keyboard.press("Control+Shift+z");
+const redone = await lettersNow();
+check("redo puts one back", redone.length > undone.length, redone.slice(0, 12));
+
+// Clear-incorrect should remove the deliberate junk and keep correct letters.
+await page.locator(".grid > *").nth(firstAcross.cells[0]).click();
+if ((await page.locator(".clue-list").first().locator(".clue--active").count()) === 0) {
+  await page.keyboard.press(" ");
+}
+await page.keyboard.type(firstAcross.answer);
+const withReal = await lettersNow();
+check("a real answer goes in", withReal.startsWith(firstAcross.answer), withReal.slice(0, 12));
+
+const secondAcross = scratch.clues.filter((c) => c.direction === "across")[1];
+await page.locator(".grid > *").nth(secondAcross.cells[0]).click();
+if ((await page.locator(".clue-list").first().locator(".clue--active").count()) === 0) {
+  await page.keyboard.press(" ");
+}
+await page.keyboard.type("Q".repeat(secondAcross.answer.length));
+await page.getByRole("button", { name: "More" }).click();
+await page.getByRole("button", { name: "Clear incorrect letters" }).click();
+const cleaned = await lettersNow();
+check(
+  "clear-incorrect keeps the right letters and drops the wrong ones",
+  cleaned.includes(firstAcross.answer) && !cleaned.includes("QQ"),
+  cleaned.slice(0, 16),
+);
+
+// The skip-filled toggle should be reachable and should stick.
+await page.getByRole("button", { name: "More" }).click();
+const skipLabel = await page.getByRole("button", { name: /Skip filled squares/ }).innerText();
+check("skip-filled toggle is in the menu", /on|off/.test(skipLabel), skipLabel);
+await page.getByRole("button", { name: /Skip filled squares/ }).click();
+await page.getByRole("button", { name: "More" }).click();
+const skipAfter = await page.getByRole("button", { name: /Skip filled squares/ }).innerText();
+check("skip-filled toggle flips", skipAfter !== skipLabel, `${skipLabel} -> ${skipAfter}`);
+await page.getByRole("button", { name: /Skip filled squares/ }).click();
+await page.keyboard.press("Escape");
+
 // --- solve -----------------------------------------------------------------
 await page.goto(`${BASE}/play?id=${target.id}`, { waitUntil: "networkidle" });
 await page.waitForSelector(".grid");
 
 const acrossClues = target.clues.filter((c) => c.direction === "across");
 for (const clue of acrossClues) {
-  await page.locator(".cell:not(.cell--block)").nth(clue.cells[0]).click();
+  await page.locator(".grid > *").nth(clue.cells[0]).click();
   // The first square of an entry is usually also the start of a down entry, so
   // make sure we are pointed across before typing the answer.
   const acrossActive = await page.locator(".clue-list").first().locator(".clue--active").count();
@@ -105,6 +170,13 @@ await page.waitForSelector(".dialog", { timeout: 5000 });
 check("solving shows the completion dialog", true);
 const badges = await page.locator(".badge").allInnerTexts();
 check("clean solve is credited", badges.some((b) => /no help/i.test(b)), badges.join(", "));
+await page.getByRole("button", { name: "Share" }).click();
+const shared = await page.evaluate(() => navigator.clipboard.readText());
+check(
+  "share copies a result card",
+  shared.includes("Crossword") && shared.includes("clem-crossword-app.vercel.app"),
+  shared.split("\n")[0],
+);
 await page.screenshot({ path: "/tmp/shot-solved.png" });
 
 // --- options menu, topics and changelog ------------------------------------
@@ -127,7 +199,15 @@ check("footer shows the newest changelog line", /^2026-/.test(latest), latest);
 await page.locator(".build-info__latest").click();
 await page.waitForSelector(".dialog--panel");
 const entries = await page.locator(".dialog__list li").allInnerTexts();
-check("changelog lists every entry, newest first", entries.length === 9 && entries[0] === latest, `${entries.length} entries`);
+const changelogLines = (await readFile("public/updates.txt", "utf8"))
+  .split("\n")
+  .map((line) => line.trim())
+  .filter(Boolean);
+check(
+  "changelog lists every entry, newest first",
+  entries.length === changelogLines.length && entries[0] === latest,
+  `${entries.length} of ${changelogLines.length} entries`,
+);
 await page.screenshot({ path: "/tmp/shot-changelog.png" });
 await page.mouse.click(5, 5);
 
@@ -182,6 +262,25 @@ const daily = mine.find((p) => p.size === "daily") ?? target;
 await mp.goto(`${BASE}/play?id=${daily.id}`, { waitUntil: "networkidle" });
 await mp.waitForSelector(".grid");
 await mp.screenshot({ path: "/tmp/shot-mobile-dark.png" });
+
+// Put something in the grid first, so the fill column has letters to show.
+const mobileAcross = daily.clues.find((c) => c.direction === "across");
+await mp.locator(".grid > *").nth(mobileAcross.cells[0]).tap();
+for (const letter of mobileAcross.answer) await mp.locator(`.key:text-is("${letter}")`).tap();
+
+await mp.locator(".clue-bar__all").click();
+await mp.waitForSelector(".allclues");
+const rows = await mp.locator(".allclues__row").count();
+check("all-clues panel lists every clue", rows === daily.clues.length, `${rows} rows`);
+const fills = await mp.locator(".allclues__fill").first().innerText();
+check(
+  "all-clues shows what is already in the grid",
+  fills.replace(/·/g, "") === mobileAcross.answer,
+  `${fills} (answer ${mobileAcross.answer})`,
+);
+await mp.screenshot({ path: "/tmp/shot-allclues.png" });
+await mp.locator(".allclues__row").first().click();
+check("tapping a clue closes the panel", (await mp.locator(".allclues").count()) === 0);
 await mp.goto(BASE, { waitUntil: "networkidle" });
 await mp.screenshot({ path: "/tmp/shot-mobile-home.png", fullPage: true });
 

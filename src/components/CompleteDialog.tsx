@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { formatDuration } from "@/lib/format";
+import { share, shareText } from "@/lib/share";
 import type { Puzzle } from "@/lib/types";
 
 interface CompleteDialogProps {
   puzzle: Puzzle;
+  playerName: string;
   elapsedMs: number;
   bestMs: number | null;
   clean: boolean;
@@ -13,8 +16,16 @@ interface CompleteDialogProps {
   onDismiss: () => void;
 }
 
+const SHARE_LABEL = {
+  idle: "Share",
+  shared: "Shared",
+  copied: "Copied",
+  failed: "Couldn't copy",
+};
+
 export function CompleteDialog({
   puzzle,
+  playerName,
   elapsedMs,
   bestMs,
   clean,
@@ -23,6 +34,7 @@ export function CompleteDialog({
 }: CompleteDialogProps) {
   const beatPar = elapsedMs <= puzzle.par * 1000;
   const newBest = bestMs !== null && elapsedMs <= bestMs;
+  const [shareState, setShareState] = useState<keyof typeof SHARE_LABEL>("idle");
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Puzzle solved">
@@ -39,6 +51,19 @@ export function CompleteDialog({
           {bestMs !== null && !newBest && <>Your best is {formatDuration(bestMs, { padMinutes: true })}.</>}
         </p>
         <div className="dialog__actions">
+          <button
+            type="button"
+            className="btn"
+            onClick={async () => {
+              const result = await share(
+                shareText({ puzzle, playerName, elapsedMs, clean, isBest: newBest }),
+              );
+              setShareState(result);
+              window.setTimeout(() => setShareState("idle"), 2500);
+            }}
+          >
+            {SHARE_LABEL[shareState]}
+          </button>
           {nextHref && (
             <Link className="btn btn--primary" href={nextHref}>
               Next puzzle

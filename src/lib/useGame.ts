@@ -18,6 +18,17 @@ export type CheckMark = "correct" | "wrong";
 export type GameStatus = "playing" | "paused" | "solved";
 
 const TICK_MS = 1000;
+const HISTORY_LIMIT = 100;
+
+/** Everything undo has to put back. */
+interface Snapshot {
+  entries: string[];
+  pencil: boolean[];
+  revealed: boolean[];
+  marks: Record<number, CheckMark>;
+  cursor: number;
+  direction: Direction;
+}
 
 function unpack(text: string, length: number, fallback: string): string[] {
   const out = new Array<string>(length);
@@ -81,6 +92,9 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   const [usedHelp, setUsedHelp] = useState(
     () => usable && (saved.checkCount > 0 || saved.revealCount > 0),
   );
+
+  const [past, setPast] = useState<Snapshot[]>([]);
+  const [future, setFuture] = useState<Snapshot[]>([]);
 
   const meta = useRef(
     usable
@@ -208,12 +222,52 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
     [cellClues, cursor],
   );
 
+  // --- undo / redo ---------------------------------------------------------
+  // Every letter, reveal and clear pushes a snapshot first. Snapshots are cheap
+  // (a few arrays the size of the grid) and this keeps undo correct for actions
+  // that touch many squares at once, which a per-square log would not.
+  const snapshot = useCallback(
+    (): Snapshot => ({ entries, pencil, revealed, marks, cursor, direction }),
+    [entries, pencil, revealed, marks, cursor, direction],
+  );
+
+  const applySnapshot = useCallback((shot: Snapshot) => {
+    setEntries(shot.entries);
+    setPencil(shot.pencil);
+    setRevealed(shot.revealed);
+    setMarks(shot.marks);
+    setCursor(shot.cursor);
+    setDirection(shot.direction);
+  }, []);
+
+  const commit = useCallback(() => {
+    setPast((prev) => [...prev, snapshot()].slice(-HISTORY_LIMIT));
+    setFuture([]);
+  }, [snapshot]);
+
+  const undo = useCallback(() => {
+    if (status === "solved" || past.length === 0) return;
+    const previous = past[past.length - 1];
+    setFuture((next) => [snapshot(), ...next].slice(0, HISTORY_LIMIT));
+    setPast((prev) => prev.slice(0, -1));
+    applySnapshot(previous);
+  }, [status, past, snapshot, applySnapshot]);
+
+  const redo = useCallback(() => {
+    if (status === "solved" || future.length === 0) return;
+    const [restored, ...rest] = future;
+    setPast((prev) => [...prev, snapshot()].slice(-HISTORY_LIMIT));
+    setFuture(rest);
+    applySnapshot(restored);
+  }, [status, future, snapshot, applySnapshot]);
+
   const typeLetter = useCallback(
     (letter: string, skipFilled: boolean) => {
       if (status === "solved") return;
       if (status === "paused") setStatus("playing");
       if (revealed[cursor]) return;
       if (meta.current.startedAt === null) meta.current.startedAt = Date.now();
+      commit();
 
       const upper = letter.toUpperCase();
       const nextEntries = [...entries];
@@ -243,11 +297,15 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         if (step.clue.direction !== direction) setDirection(step.clue.direction);
       }
     },
-    [status, revealed, cursor, autocheck, puzzle, pencilMode, activeClue, entries, direction, finish],
+    [
+      status, revealed, cursor, autocheck, puzzle, pencilMode, activeClue, entries, direction,
+      finish, commit,
+    ],
   );
 
   const backspace = useCallback(() => {
     if (status === "solved") return;
+    commit();
     setEntries((prev) => {
       const next = [...prev];
       if (next[cursor] && !revealed[cursor]) {
@@ -266,7 +324,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       delete next[cursor];
       return next;
     });
-  }, [status, cursor, revealed, activeClue]);
+  }, [status, cursor, revealed, activeClue, commit]);
 
   const moveCursor = useCallback(
     (dRow: number, dCol: number) => {
@@ -332,6 +390,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
     (scope: "square" | "word" | "puzzle") => {
       meta.current.revealCount += 1;
       setUsedHelp(true);
+      commit();
       const cells = cellsFor(scope);
       const next = [...entries];
       for (const cell of cells) next[cell] = puzzle.solution[cell];
@@ -348,11 +407,12 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         return next;
       });
     },
-    [cellsFor, entries, puzzle.solution, finish],
+    [cellsFor, entries, puzzle.solution, finish, commit],
   );
 
   const clear = useCallback(
     (scope: "square" | "word" | "puzzle") => {
+      commit();
       const cells = cellsFor(scope);
       setEntries((prev) => {
         const next = [...prev];
@@ -365,8 +425,27 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         return next;
       });
     },
-    [cellsFor, revealed],
+    [cellsFor, revealed, commit],
   );
+
+  /**
+   * Wipe only the letters that are wrong. Reading the answers to decide counts
+   * as help, the same as a check does.
+   */
+  const clearIncorrect = useCallback(() => {
+    if (status === "solved") return;
+    commit();
+    meta.current.checkCount += 1;
+    setUsedHelp(true);
+    setEntries((prev) =>
+      prev.map((letter, cell) =>
+        letter && letter !== BLOCK && !revealed[cell] && letter !== puzzle.solution[cell]
+          ? ""
+          : letter,
+      ),
+    );
+    setMarks({});
+  }, [status, revealed, puzzle.solution, commit]);
 
   const restart = useCallback(() => {
     solvedRef.current = false;
@@ -380,6 +459,8 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
     setDirection("across");
     setJustSolved(false);
     setUsedHelp(false);
+    setPast([]);
+    setFuture([]);
     setStatus("playing");
   }, [puzzle.solution, size, firstCell]);
 
@@ -424,6 +505,8 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
     pencilMode,
     autocheck,
     justSolved,
+    canUndo: past.length > 0 && status !== "solved",
+    canRedo: future.length > 0 && status !== "solved",
     dismissSolved: () => setJustSolved(false),
     actions: {
       selectCell,
@@ -437,6 +520,9 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       check,
       reveal,
       clear,
+      clearIncorrect,
+      undo,
+      redo,
       restart,
       togglePause,
       togglePencil: () => setPencilMode((p) => !p),

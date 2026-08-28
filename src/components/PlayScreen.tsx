@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AllCluesPanel } from "./AllCluesPanel";
 import { ClueBar } from "./ClueBar";
 import { ClueList } from "./ClueList";
 import { CompleteDialog } from "./CompleteDialog";
@@ -14,6 +15,7 @@ import { nextPuzzle } from "@/lib/puzzles";
 import { EMPTY_PROGRESS, loadProgress, loadStats, type PuzzleProgress } from "@/lib/storage";
 import { useHydrated, useStorageVersion } from "@/lib/useStorage";
 import { SIZE_LABEL, type Clue, type Puzzle } from "@/lib/types";
+import { getUser } from "@/lib/users";
 
 /**
  * Waits for hydration before mounting the game, so the saved grid can seed the
@@ -36,7 +38,8 @@ export function PlayScreen({ puzzle }: { puzzle: Puzzle }) {
 
 function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) {
   const game = useGame(puzzle, saved);
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
+  const [showAllClues, setShowAllClues] = useState(false);
   const storageVersion = useStorageVersion();
   const bestMs = useMemo(
     () => (storageVersion >= 0 ? (loadStats(puzzle.user).best[puzzle.id] ?? null) : null),
@@ -52,7 +55,19 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.metaKey || event.ctrlKey) {
+        const key = event.key.toLowerCase();
+        if (key === "z") {
+          event.preventDefault();
+          if (event.shiftKey) actions.redo();
+          else actions.undo();
+        } else if (key === "y") {
+          event.preventDefault();
+          actions.redo();
+        }
+        return;
+      }
+      if (event.altKey) return;
       const key = event.key;
 
       if (/^[a-zA-Z]$/.test(key)) {
@@ -116,13 +131,20 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
         status={status}
         pencilMode={game.pencilMode}
         autocheck={game.autocheck}
+        skipFilled={settings.skipFilled}
+        canUndo={game.canUndo}
+        canRedo={game.canRedo}
         onPause={actions.togglePause}
         onCheck={actions.check}
         onReveal={actions.reveal}
         onClear={actions.clear}
+        onClearIncorrect={actions.clearIncorrect}
+        onUndo={actions.undo}
+        onRedo={actions.redo}
         onRestart={actions.restart}
         onTogglePencil={actions.togglePencil}
         onToggleAutocheck={actions.toggleAutocheck}
+        onToggleSkipFilled={() => update({ skipFilled: !settings.skipFilled })}
       />
 
       <ClueBar
@@ -130,6 +152,7 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
         onPrev={() => actions.stepClue(-1)}
         onNext={() => actions.stepClue(1)}
         onToggleDirection={actions.toggleDirection}
+        onShowAll={() => setShowAllClues(true)}
       />
 
       <div className="play__body">
@@ -179,9 +202,22 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
         onNext={() => actions.stepClue(1)}
       />
 
+      {showAllClues && (
+        <AllCluesPanel
+          across={game.across}
+          down={game.down}
+          entries={game.entries}
+          activeNumber={game.activeClue?.number}
+          activeDirection={game.direction}
+          onPick={actions.goToClue}
+          onClose={() => setShowAllClues(false)}
+        />
+      )}
+
       {game.justSolved && (
         <CompleteDialog
           puzzle={puzzle}
+          playerName={getUser(puzzle.user)?.name ?? puzzle.user}
           elapsedMs={game.elapsedMs}
           bestMs={bestMs}
           clean={!game.usedHelp}
