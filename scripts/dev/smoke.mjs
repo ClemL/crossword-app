@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+// End-to-end check of the built app: solves a puzzle, confirms the stats it
+// records, and verifies the service worker really serves the app offline.
+// Run `npm run build` first, then `node scripts/dev/smoke.mjs`.
+import { chromium } from "playwright";
+import { createServer } from "node:http";
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
+
+const ROOT = path.resolve("out");
+const PORT = 4321;
+const BASE = `http://localhost:${PORT}`;
+const CHROME = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+
+const TYPES = {
+  ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
+  ".json": "application/json", ".png": "image/png", ".txt": "text/plain",
+  ".webmanifest": "application/manifest+json", ".ico": "image/x-icon",
+};
+
+let online = true;
+const server = createServer(async (req, res) => {
+  if (!online) {
+    req.socket.destroy();
+    return;
+  }
+  const url = new URL(req.url, BASE);
+  let file = path.join(ROOT, decodeURIComponent(url.pathname));
+  try {
+    const info = await stat(file).catch(() => null);
+    if (!info || info.isDirectory()) {
+      const alt = `${file.replace(/\/$/, "")}.html`;
+      file = (await stat(alt).catch(() => null)) ? alt : path.join(file, "index.html");
+    }
+    const body = await readFile(file);
+    res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] ?? "application/octet-stream" });
+    res.end(body);
+  } catch {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end("not found");
+  }
+});
+await new Promise((resolve) => server.listen(PORT, resolve));
+
+const puzzles = JSON.parse(await readFile("src/data/puzzles.json", "utf8"));
+const target = puzzles.find((p) => p.size === "micro") ?? puzzles[0];
+
+const browser = await chromium.launch({ executablePath: CHROME });
+const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const page = await context.newPage();
+
+const problems = [];
+page.on("pageerror", (e) => problems.push(`pageerror: ${e}`));
+page.on("console", (m) => {
+  const text = m.text();
+  // A failed fetch while we are deliberately offline is the service worker
+  // doing its job, not a bug.
+  const expected = /favicon|ERR_INTERNET_DISCONNECTED|Failed to fetch/.test(text);
+  if (m.type() === "error" && !expected) problems.push(`console: ${text}`);
+});
+
+const check = (label, ok, extra = "") => {
+  console.log(`${ok ? "PASS" : "FAIL"}  ${label}${extra ? ` — ${extra}` : ""}`);
+  if (!ok) problems.push(`assertion failed: ${label}`);
+};
+
+// --- bank ------------------------------------------------------------------
+await page.goto(BASE, { waitUntil: "networkidle" });
+const cardCount = await page.locator(".pcard").count();
+check("bank lists every puzzle", cardCount === puzzles.length, `${cardCount} cards`);
+
+// --- solve -----------------------------------------------------------------
+await page.goto(`${BASE}/play?id=${target.id}`, { waitUntil: "networkidle" });
+await page.waitForSelector(".grid");
+
+const acrossClues = target.clues.filter((c) => c.direction === "across");
+for (const clue of acrossClues) {
+  await page.locator(".cell:not(.cell--block)").nth(clue.cells[0]).click();
+  // The first square of an entry is usually also the start of a down entry, so
+  // make sure we are pointed across before typing the answer.
+  const acrossActive = await page.locator(".clue-list").first().locator(".clue--active").count();
+  if (acrossActive === 0) await page.keyboard.press(" ");
+  await page.keyboard.type(clue.answer);
+}
+
+await page.waitForSelector(".dialog", { timeout: 5000 });
+check("solving shows the completion dialog", true);
+const badges = await page.locator(".badge").allInnerTexts();
+check("clean solve is credited", badges.some((b) => /no help/i.test(b)), badges.join(", "));
+await page.screenshot({ path: "/tmp/shot-solved.png" });
+
+// --- stats -----------------------------------------------------------------
+await page.goto(`${BASE}/stats`, { waitUntil: "networkidle" });
+const solvedValue = await page.locator(".strip__item").first().locator(".strip__value").innerText();
+check("stats records the solve", solvedValue === "1", `shows ${solvedValue}`);
+const streak = await page.locator(".strip__item").nth(1).locator(".strip__value").innerText();
+check("streak starts at 1", streak === "1", `shows ${streak}`);
+await page.screenshot({ path: "/tmp/shot-stats.png", fullPage: true });
+
+// --- resume ----------------------------------------------------------------
+await page.goto(`${BASE}/play?id=${target.id}`, { waitUntil: "networkidle" });
+const letters = await page.locator(".cell__letter").allInnerTexts();
+check(
+  "a solved grid comes back filled in",
+  letters.join("") === target.solution.filter((c) => c !== "#").join(""),
+);
+
+// --- offline ---------------------------------------------------------------
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 15000 })
+  .then(() => check("service worker took control", true))
+  .catch(() => check("service worker took control", false));
+
+online = false;
+await context.setOffline(true);
+await page.goto(`${BASE}/play?id=${target.id}`, { waitUntil: "domcontentloaded" });
+await page.waitForSelector(".grid", { timeout: 15000 })
+  .then(() => check("a puzzle route loads with the network down", true))
+  .catch(() => check("a puzzle route loads with the network down", false));
+const offlineBadge = await page.locator(".offline-badge").count();
+check("offline banner appears", offlineBadge === 1);
+await page.screenshot({ path: "/tmp/shot-offline.png" });
+
+online = true;
+await context.setOffline(false);
+
+// --- mobile + dark ---------------------------------------------------------
+const mobile = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+  colorScheme: "dark",
+});
+const mp = await mobile.newPage();
+const daily = puzzles.find((p) => p.size === "daily") ?? target;
+await mp.goto(`${BASE}/play?id=${daily.id}`, { waitUntil: "networkidle" });
+await mp.waitForSelector(".grid");
+await mp.screenshot({ path: "/tmp/shot-mobile-dark.png" });
+await mp.goto(BASE, { waitUntil: "networkidle" });
+await mp.screenshot({ path: "/tmp/shot-mobile-home.png", fullPage: true });
+
+console.log(problems.length ? `\nPROBLEMS:\n${problems.join("\n")}` : "\nall checks passed");
+await browser.close();
+server.close();
+process.exit(problems.length ? 1 : 0);
