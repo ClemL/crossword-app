@@ -63,7 +63,8 @@ npm run lint
 ## Where the puzzles come from
 
 Puzzles are generated ahead of time by `npm run gen:puzzles` and committed to
-`src/data/puzzles.json`; the app never generates them at runtime.
+`src/data/puzzles.json`; the app never generates them at runtime. The generator is deterministic —
+re-running it reproduces the committed bank — so pass `--seed=<anything>` to get a different set.
 
 The answer bank starts with a few hundred hand-written themed answers, then adds hand-written
 clues for common short fill, definitions from the public-domain **Webster's 1913** dictionary, and

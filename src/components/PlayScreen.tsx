@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AllCluesPanel } from "./AllCluesPanel";
 import { ClueBar } from "./ClueBar";
+import { Confetti } from "./Confetti";
 import { ClueList } from "./ClueList";
 import { CompleteDialog } from "./CompleteDialog";
 import { Grid } from "./Grid";
 import { Keyboard } from "./Keyboard";
 import { OfflineBadge } from "./OfflineBadge";
+import { ProgressBar } from "./ProgressBar";
 import { Toolbar } from "./Toolbar";
 import { useGame } from "@/lib/useGame";
 import { useSettings } from "@/lib/useSettings";
@@ -147,6 +149,8 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
         onToggleSkipFilled={() => update({ skipFilled: !settings.skipFilled })}
       />
 
+      <ProgressBar filled={game.progress.filled} total={game.progress.total} />
+
       <ClueBar
         clue={game.activeClue}
         onPrev={() => actions.stepClue(-1)}
@@ -213,6 +217,8 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
           onClose={() => setShowAllClues(false)}
         />
       )}
+
+      {game.justSolved && <Confetti />}
 
       {game.justSolved && (
         <CompleteDialog

@@ -107,6 +107,14 @@ await page.keyboard.type("ZZZ");
 const typed = await lettersNow();
 check("typing lands in the grid", typed.includes("ZZZ"), typed.slice(0, 12));
 
+const partWidth = await page.locator(".progress__fill").evaluate((el) => el.style.width);
+const partLabel = await page.locator(".progress").getAttribute("aria-label");
+check(
+  "progress bar tracks letters entered",
+  partWidth !== "0%" && partWidth !== "100%" && /3 of \d+ squares filled/.test(partLabel ?? ""),
+  `${partWidth} — ${partLabel}`,
+);
+
 await page.keyboard.press("Control+z");
 await page.keyboard.press("Control+z");
 await page.keyboard.press("Control+z");
@@ -168,6 +176,11 @@ for (const clue of acrossClues) {
 
 await page.waitForSelector(".dialog", { timeout: 5000 });
 check("solving shows the completion dialog", true);
+check("confetti fires on the solve", (await page.locator("canvas.confetti").count()) === 1);
+await page.waitForTimeout(700);
+await page.screenshot({ path: "/tmp/shot-confetti.png" });
+const doneWidth = await page.locator(".progress__fill").evaluate((el) => el.style.width);
+check("progress bar reaches full on a solved grid", doneWidth === "100%", doneWidth);
 const badges = await page.locator(".badge").allInnerTexts();
 check("clean solve is credited", badges.some((b) => /no help/i.test(b)), badges.join(", "));
 await page.getByRole("button", { name: "Share" }).click();

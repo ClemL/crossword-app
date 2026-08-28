@@ -14,6 +14,23 @@ import { pickSeeds, themedByLength } from "./lib/theme-seed.mjs";
 import { createFiller } from "./lib/fill.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * The whole generator is deterministic: the same seed gives the same bank,
+ * every time. Pass `--seed=<n>` (or set GEN_SEED) to get a different one --
+ * without that, re-running just reproduces the puzzles already committed.
+ */
+const SEED = (() => {
+  const arg = process.argv.find((a) => a.startsWith("--seed="))?.slice(7);
+  const raw = arg ?? process.env.GEN_SEED ?? "";
+  if (!raw) return 0xc0ffee;
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed)) return Math.trunc(parsed);
+  // Anything non-numeric (a date, say) is hashed, so `--seed=2026-08-29` works.
+  let hash = 2166136261;
+  for (const ch of raw) hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
+  return hash >>> 0;
+})();
 const OUT = path.join(HERE, "..", "src", "data", "puzzles.json");
 const TOPICS_OUT = path.join(HERE, "..", "src", "data", "topics.json");
 
@@ -161,7 +178,7 @@ async function main() {
   const started = Date.now();
   const reclueOnly = process.argv.includes("--reclue");
 
-  process.stderr.write("building answer banks...\n");
+  process.stderr.write(`building answer banks (seed ${SEED})...\n`);
   /** @type {Map<string, object[]>} */
   const banks = new Map();
   for (const user of USERS) {
@@ -199,7 +216,7 @@ async function main() {
     }
 
     for (const plan of PLANS) {
-      const rng = makeRng(0xc0ffee + plan.dim * 7919 + user.id.charCodeAt(0) * 104729);
+      const rng = makeRng(SEED + plan.dim * 7919 + user.id.charCodeAt(0) * 104729);
       let made = 0;
       let attempts = 0;
       const attemptCap = plan.count * 25;

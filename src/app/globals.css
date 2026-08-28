@@ -583,9 +583,36 @@ button {
 .menu__panel a:hover { background: var(--surface-2); }
 .menu__panel hr { border: 0; border-top: 1px solid var(--line); margin: 0.3rem 0; }
 
-.clue-bar {
+/* ------------------------------------------------------------ progress -- */
+.progress {
   position: sticky;
   top: 53px;
+  z-index: 16;
+  height: 4px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.18s ease;
+}
+
+/* ------------------------------------------------------------ confetti -- */
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.clue-bar {
+  position: sticky;
+  top: 57px;
   z-index: 15;
   display: flex;
   align-items: stretch;
@@ -1073,6 +1100,7 @@ button {
   .toolbar__actions .btn { padding: 0.4rem 0.55rem; font-size: 0.85rem; }
   .toolbar__wide { display: none; }
   .toolbar__narrow { display: flex; }
-  .clue-bar { top: 45px; }
+  .progress { top: 45px; }
+  .clue-bar { top: 49px; }
   .play__body { padding: 0.75rem 0.5rem; }
 }
