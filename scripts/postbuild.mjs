@@ -40,6 +40,7 @@ const precache = new Set(["/"]);
 for (const file of files) {
   if (file.startsWith("/_next/static/") && /\.(js|css|woff2?)$/.test(file)) precache.add(file);
   if (/^\/[^/]+\.(png|svg|ico|webmanifest)$/.test(file)) precache.add(file);
+  if (file === "/updates.txt") precache.add(file);
   if (file.endsWith(".html")) {
     // "/play.html" is reachable as "/play"; cache both spellings.
     const route = file.replace(/\/index\.html$/, "").replace(/\.html$/, "") || "/";

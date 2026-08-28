@@ -84,10 +84,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Everything else -- the changelog included -- is network-first so it stays
+  // current, with the cached copy as the offline fallback.
   event.respondWith(
     (async () => {
       try {
-        return await fetch(request);
+        const fresh = await fetch(request);
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE);
+          cache.put(request, fresh.clone());
+        }
+        return fresh;
       } catch {
         const cached = await caches.match(request);
         return cached ?? Response.error();

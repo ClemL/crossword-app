@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { OfflineBadge } from "@/components/OfflineBadge";
 import { SparkBars } from "@/components/SparkBars";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatDuration, formatRelative, pluralize } from "@/lib/format";
 import { computeStreaks, summarizeOverall, summarizeSize } from "@/lib/stats";
 import { EMPTY_STATS, loadStats, resetUser } from "@/lib/storage";
 import { useStorageVersion } from "@/lib/useStorage";
 import { useUser } from "@/lib/useUser";
-import { UserSwitch } from "@/components/UserSwitch";
+import { OptionsMenu } from "@/components/OptionsMenu";
+import { SiteFooter } from "@/components/SiteFooter";
 import { PUZZLES_BY_ID } from "@/lib/puzzles";
 import { SIZES, SIZE_LABEL } from "@/lib/types";
 
@@ -42,11 +42,7 @@ export default function StatsPage() {
           </p>
         </div>
         <div className="hero__side">
-          <UserSwitch />
-          <ThemeToggle />
-          <Link className="btn" href="/">
-            Puzzles
-          </Link>
+          <OptionsMenu showStatsLink={false} />
         </div>
       </header>
 
@@ -221,6 +217,8 @@ export default function StatsPage() {
           </button>
         )}
       </section>
+
+      <SiteFooter />
     </main>
   );
 }

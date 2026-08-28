@@ -291,31 +291,6 @@ button {
   font-weight: 650;
 }
 
-.userswitch {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-
-.userswitch button {
-  border: 0;
-  background: transparent;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-
-.userswitch__on {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
-}
-
 .resume {
   display: flex;
   align-items: center;
@@ -587,7 +562,9 @@ button {
   z-index: 40;
 }
 
-.menu__panel button {
+.menu__panel button,
+.menu__panel a {
+  display: block;
   text-align: left;
   padding: 0.5rem 0.6rem;
   border: 0;
@@ -596,7 +573,8 @@ button {
   cursor: pointer;
   font-size: 0.9rem;
 }
-.menu__panel button:hover { background: var(--surface-2); }
+.menu__panel button:hover,
+.menu__panel a:hover { background: var(--surface-2); }
 .menu__panel hr { border: 0; border-top: 1px solid var(--line); margin: 0.3rem 0; }
 
 .clue-bar {
@@ -898,6 +876,73 @@ button {
 }
 
 .dialog__note { font-size: 0.85rem; color: var(--ink-soft); }
+
+/* Panel variant: a titled dialog with a scrolling list, used by the changelog
+   and the topic list. */
+.dialog--panel {
+  text-align: left;
+  align-items: stretch;
+  gap: 0.9rem;
+  max-width: 34rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog__head h2 { font-size: 1.05rem; }
+
+.dialog__close {
+  border: 0;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.dialog__close:hover { color: var(--ink); }
+
+.dialog__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.dialog__list li { margin-bottom: 0.2rem; }
+
+/* -------------------------------------------------------- build footer -- */
+.build-info {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.build-info__latest {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.build-info__latest:hover { color: var(--ink); }
 
 .dialog__actions {
   display: flex;

@@ -1,0 +1,9 @@
+2026-08-27T19:10:00Z - First build: micro, mini and daily grids, a timer, saved progress and offline play
+2026-08-27T21:40:00Z - Grid navigation fixes: the cursor no longer sticks on the last square of an entry
+2026-08-27T23:20:00Z - Better clues: several dictionary senses considered, and no clue gives away its own answer
+2026-08-28T00:15:00Z - Dark mode stopped inverting the blocked squares, and the phone toolbar fits on one row
+2026-08-28T04:35:00Z - Two players: Clem and Lori, each with their own puzzles, progress and stats
+2026-08-28T04:35:00Z - Puzzles are now built around a list of topics rather than being themeless
+2026-08-28T05:20:00Z - Five puzzles per size, per player
+2026-08-28T07:30:00Z - Lori's topics expanded: Instagram, travel, pharma, cards, yoga, Costco, dogs and more
+2026-08-28T07:30:00Z - Topics moved into the options menu, and this changelog added

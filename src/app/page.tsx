@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { OfflineBadge } from "@/components/OfflineBadge";
 import { PuzzleCard, type PuzzleState } from "@/components/PuzzleCard";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { OptionsMenu } from "@/components/OptionsMenu";
+import { SiteFooter } from "@/components/SiteFooter";
 import { UserPicker } from "@/components/UserPicker";
-import { UserSwitch } from "@/components/UserSwitch";
 import { puzzlesOfSize, puzzlesOfUser } from "@/lib/puzzles";
 import { useUser } from "@/lib/useUser";
 import { SIZES, SIZE_LABEL, type PuzzleSize } from "@/lib/types";
@@ -75,17 +75,13 @@ export default function HomePage() {
         <div>
           <h1 className="hero__title">Crossword</h1>
           <p className="hero__sub">
-            {pluralize(puzzlesOfUser(user.id).length, "puzzle")} built around {user.name}&apos;s
-            topics. Everything runs on your device — the timer, your progress and your stats all
-            keep working with no connection.
+            {pluralize(puzzlesOfUser(user.id).length, "puzzle")} for {user.name}. Everything runs
+            on your device — the timer, your progress and your stats all keep working with no
+            connection.
           </p>
         </div>
         <div className="hero__side">
-          <UserSwitch />
-          <ThemeToggle />
-          <Link className="btn" href="/stats">
-            Stats
-          </Link>
+          <OptionsMenu />
         </div>
       </header>
 
@@ -132,14 +128,15 @@ export default function HomePage() {
         />
       ))}
 
-      <footer className="foot">
+      <div className="foot">
         <p>
           Clues are built from a hand-written bank plus the public-domain Webster&apos;s 1913
           dictionary — so a few read a little antique. A clue ending{" "}
           <em>&hellip;, plus &ldquo;ED&rdquo;</em> means exactly that: solve the clue, then add the
           ending.
         </p>
-      </footer>
+      </div>
+      <SiteFooter />
     </main>
   );
 }
