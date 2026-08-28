@@ -5,7 +5,10 @@ import { useMemo } from "react";
 import { OfflineBadge } from "@/components/OfflineBadge";
 import { PuzzleCard, type PuzzleState } from "@/components/PuzzleCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PUZZLES, puzzlesOfSize } from "@/lib/puzzles";
+import { UserPicker } from "@/components/UserPicker";
+import { UserSwitch } from "@/components/UserSwitch";
+import { puzzlesOfSize, puzzlesOfUser } from "@/lib/puzzles";
+import { useUser } from "@/lib/useUser";
 import { SIZES, SIZE_LABEL, type PuzzleSize } from "@/lib/types";
 import { formatDuration, pluralize } from "@/lib/format";
 import { loadProgress, loadStats } from "@/lib/storage";
@@ -20,17 +23,22 @@ interface CardState {
 }
 
 export default function HomePage() {
+  const { user, setUser, hydrated } = useUser();
   // Saved progress is read straight from localStorage, keyed off the storage
   // version so it refreshes when a puzzle is solved in another tab.
   const version = useStorageVersion();
+  const userId = user?.id ?? null;
 
-  const stats = useMemo(() => (version >= 0 ? loadStats() : null), [version]);
+  const stats = useMemo(
+    () => (version >= 0 && userId ? loadStats(userId) : null),
+    [version, userId],
+  );
 
   const cards = useMemo<Record<string, CardState>>(() => {
-    if (version < 0) return {};
+    if (version < 0 || !userId) return {};
     const next: Record<string, CardState> = {};
-    for (const puzzle of PUZZLES) {
-      const saved = loadProgress(puzzle.id);
+    for (const puzzle of puzzlesOfUser(userId)) {
+      const saved = loadProgress(userId, puzzle.id);
       const total = puzzle.solution.filter((c) => c !== "#").length;
       let filled = 0;
       for (let i = 0; i < puzzle.solution.length; i++) {
@@ -46,15 +54,18 @@ export default function HomePage() {
       };
     }
     return next;
-  }, [version]);
+  }, [version, userId]);
 
   const overall = useMemo(() => (stats ? summarizeOverall(stats) : null), [stats]);
   const streaks = useMemo(() => (stats ? computeStreaks(stats) : null), [stats]);
 
   const resume = useMemo(() => {
-    const inProgress = PUZZLES.filter((p) => cards[p.id]?.state === "in-progress");
-    return inProgress[0];
-  }, [cards]);
+    if (!userId) return undefined;
+    return puzzlesOfUser(userId).find((p) => cards[p.id]?.state === "in-progress");
+  }, [cards, userId]);
+
+  if (hydrated && !user) return <UserPicker onPick={setUser} />;
+  if (!user) return <main className="page page--narrow"><p className="muted">Loading…</p></main>;
 
   return (
     <main className="page">
@@ -64,11 +75,13 @@ export default function HomePage() {
         <div>
           <h1 className="hero__title">Crossword</h1>
           <p className="hero__sub">
-            {pluralize(PUZZLES.length, "puzzle")} in three sizes. Everything runs on your device —
-            the timer, your progress and your stats all keep working with no connection.
+            {pluralize(puzzlesOfUser(user.id).length, "puzzle")} built around {user.name}&apos;s
+            topics. Everything runs on your device — the timer, your progress and your stats all
+            keep working with no connection.
           </p>
         </div>
         <div className="hero__side">
+          <UserSwitch />
           <ThemeToggle />
           <Link className="btn" href="/stats">
             Stats
@@ -107,7 +120,16 @@ export default function HomePage() {
       )}
 
       {SIZES.map((meta) => (
-        <SizeSection key={meta.key} size={meta.key} label={meta.label} blurb={meta.blurb} dimensions={meta.dimensions} cards={cards} best={stats?.best ?? {}} />
+        <SizeSection
+          key={meta.key}
+          userId={user.id}
+          size={meta.key}
+          label={meta.label}
+          blurb={meta.blurb}
+          dimensions={meta.dimensions}
+          cards={cards}
+          best={stats?.best ?? {}}
+        />
       ))}
 
       <footer className="foot">
@@ -123,6 +145,7 @@ export default function HomePage() {
 }
 
 function SizeSection({
+  userId,
   size,
   label,
   blurb,
@@ -130,6 +153,7 @@ function SizeSection({
   cards,
   best,
 }: {
+  userId: string;
   size: PuzzleSize;
   label: string;
   blurb: string;
@@ -137,7 +161,7 @@ function SizeSection({
   cards: Record<string, CardState>;
   best: Record<string, number>;
 }) {
-  const puzzles = puzzlesOfSize(size);
+  const puzzles = puzzlesOfSize(userId, size);
   const solved = puzzles.filter((p) => cards[p.id]?.state === "solved").length;
 
   return (

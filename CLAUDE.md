@@ -26,14 +26,26 @@ These apply to every request in this repo.
 
 A crossword app in the spirit of the NYT one, with three sizes:
 
-| Size  | Grid    | Feel                                  |
-| ----- | ------- | ------------------------------------- |
-| Micro | 3 x 3   | Six answers, about a minute           |
-| Mini  | 5 x 5   | Coffee break                          |
-| Daily | 15 x 15 | A full themeless grid                 |
+| Size  | Grid    | Per player | Feel                        |
+| ----- | ------- | ---------- | --------------------------- |
+| Micro | 3 x 3   | 5          | Six answers, about a minute |
+| Mini  | 5 x 5   | 5          | Coffee break                |
+| Daily | 15 x 15 | 5          | A full grid                 |
 
 It is a fully client-side app: a timer, solve metrics, saved progress and the whole puzzle bank live
 on the device. There is no backend and no account.
+
+### Two players
+
+There are two profiles, **clem** and **lori**. A profile is not a login — it decides which bank of
+puzzles you see and which slice of `localStorage` your progress goes into. It is chosen on first
+visit and switchable from the header.
+
+Puzzles are built around a list of topics. Both players share the main list (rock climbing, golf,
+Reddit, memes, Korea, Japan, Hong Kong, Vietnam, PCs, video gaming, board games, Boston, Arlington
+MA, Quincy MA, healthcare, big pharma); Clem's bank also draws on programming, finance, SQL, C#,
+Magic: the Gathering, graphics cards, Dota, StarCraft, Elden Ring, Red Dead Redemption 2, sysadmin
+and helpdesk work, and hospital data.
 
 ## Stack
 
@@ -57,7 +69,12 @@ public/            manifest, service worker template, icons
 ### Key files
 
 * `src/lib/useGame.ts` — all gameplay state: letters, cursor, direction, clock, check/reveal.
-* `src/lib/storage.ts` — every localStorage read/write. Keys are namespaced `crossword:v1:*`.
+* `src/lib/users.ts` — the two profiles.
+* `src/lib/storage.ts` — every localStorage read/write. Progress and stats are per player
+  (`crossword:v1:<player>:*`); the theme and the chosen player are not.
+* `scripts/lib/themes-*.mjs` — the themed answer bank: `themes-shared.mjs` and `themes-clem.mjs`
+  hold the longer answers, `themes-short.mjs` the three-to-five-letter ones. Adding entries here is
+  the single most effective way to raise how much of a grid comes out on-theme.
 * `src/lib/useStorage.ts` — `useSyncExternalStore` wrapper so components re-read storage on change
   instead of copying it into state inside an effect.
 * `public/sw.js` — offline cache. `__PRECACHE__` is replaced at build time.
@@ -81,14 +98,31 @@ npm run gen:icons    # regenerate the PNG app icons
 `npm run gen:puzzles` builds the bank offline and writes `src/data/puzzles.json`, which is
 committed. The app never generates puzzles at runtime.
 
-1. **Answer bank** (`scripts/lib/lexicon.mjs`) — hand-written clues for common short fill, plus the
-   public-domain Webster's 1913 dictionary for everything else, plus inflected forms (`-S`, `-ED`,
-   `-ING`, …) derived from words we can already clue. Every answer is scored into a tier by corpus
-   frequency; small puzzles are restricted to the common tiers.
+1. **Answer bank** (`scripts/lib/lexicon.mjs`) — the themed answers, plus hand-written clues for
+   common short fill, plus the public-domain Webster's 1913 dictionary for everything else, plus
+   inflected forms (`-S`, `-ED`, `-ING`, …) derived from words we can already clue. Every answer is
+   scored into a tier by corpus frequency; themed answers sit below every other tier, so the filler
+   reaches for them first.
 2. **Grid** (`scripts/lib/grid.mjs`) — random 180°-rotationally-symmetric block patterns, validated
    for minimum run length and connectivity.
 3. **Fill** (`scripts/lib/fill.mjs`) — a CSP solver: bitset domains per entry, arc-consistency
-   propagation across crossings, most-constrained-entry ordering, randomized restarts.
+   propagation across crossings, most-constrained-entry ordering, randomized restarts. It also
+   accepts *seeds*: themed answers pinned into chosen entries before the search starts.
+
+### Getting puzzles on-theme
+
+Two things do the work, and both are in the generator's plan `ladder`:
+
+* **Seeds** — a few mutually non-crossing entries are pinned to themed answers up front
+  (`scripts/lib/theme-seed.mjs`). They must not cross: two crossing themed answers pin a shared
+  letter from both sides, which is what makes a themed grid impossible to close.
+* **Bank width** — each plan is tried narrowest-bank-first. The fewer ordinary words the filler can
+  reach for, the more of the grid ends up themed, so the first rung that closes the grid is the most
+  themed one available. A 3x3 usually closes on the narrowest rung and comes out 50-67% themed; a
+  15x15 needs the widest and lands nearer a quarter.
+
+How themed a grid can get is set by how many themed answers exist at each length. If you want more,
+add entries to `scripts/lib/themes-short.mjs` — that is where the interlock pressure is.
 
 Sources are cached in `scripts/.cache/` (gitignored), so only the first run needs the network.
 
@@ -109,3 +143,6 @@ the convention is explained on the home page.
 * Anything touching `localStorage` needs a `typeof window` guard or must run after hydration —
   the app is prerendered.
 * Bump the `NS` constant in `storage.ts` if a saved-data shape changes incompatibly.
+* A puzzle's `user` field is the key its progress and stats are filed under — never the currently
+  selected player. Opening someone else's link offers to switch rather than writing into their
+  history.
