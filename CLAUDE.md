@@ -71,7 +71,8 @@ npm run dev          # local dev server
 npm run build        # next build + service-worker precache injection (run before every PR)
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
-npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: minutes, needs network once)
+npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: ~50 min, needs network once)
+npm run reclue       # re-pick clues for the existing grids (fast) after a clue-rule change
 npm run gen:icons    # regenerate the PNG app icons
 ```
 
@@ -91,9 +92,14 @@ committed. The app never generates puzzles at runtime.
 
 Sources are cached in `scripts/.cache/` (gitignored), so only the first run needs the network.
 
+Filling a 15x15 takes minutes, so improving a *clue* rule should not mean regenerating puzzles whose
+grids are fine: `npm run reclue` rebuilds the answer bank and re-picks every clue in place. It
+refuses to write if any answer in the existing bank has become uncluable, since that would mean the
+grids really do need regenerating.
+
 **No commercial crossword content is used.** Clues are either hand-written here or derived from a
-public-domain dictionary. A clue ending `…, with "ED" added` means exactly that: solve the clue, then add the
-ending — the convention is explained on the home page.
+public-domain dictionary. A clue ending `…, plus "ED"` means exactly that: solve the clue, then add the ending —
+the convention is explained on the home page.
 
 ## Conventions
 

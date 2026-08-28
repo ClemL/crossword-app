@@ -4,7 +4,7 @@
 // Run with `npm run gen:puzzles`. Output is committed, so the app itself never
 // needs the network or the generator at runtime — which is what lets it work
 // fully offline.
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -91,11 +91,53 @@ function toPuzzle({ size, ordinal, dim, blocks, slots, result, par, rng }) {
   };
 }
 
+/**
+ * Re-pick every clue for the bank that is already on disk, leaving the grids
+ * alone. Filling a 15x15 takes minutes, so an improvement to the clue rules
+ * should not mean regenerating puzzles that are otherwise fine.
+ */
+async function reclue(words) {
+  const existing = JSON.parse(await readFile(OUT, "utf8"));
+  const byAnswer = new Map(words.map((w) => [w.word, w]));
+  const rng = makeRng(0x51dea1);
+  let missing = 0;
+  let changed = 0;
+
+  for (const puzzle of existing) {
+    for (const clue of puzzle.clues) {
+      const entry = byAnswer.get(clue.answer);
+      if (!entry || entry.clues.length === 0) {
+        missing += 1;
+        process.stderr.write(`  ! ${puzzle.id} ${clue.answer} has no clue left\n`);
+        continue;
+      }
+      const next = entry.clues[Math.floor(rng() * entry.clues.length)];
+      if (next !== clue.text) changed += 1;
+      clue.text = next;
+    }
+  }
+
+  if (missing > 0) {
+    process.stderr.write(
+      `refusing to write: ${missing} answers are no longer cluable, so the grids need regenerating\n`,
+    );
+    process.exit(1);
+  }
+
+  await writeFile(OUT, JSON.stringify(existing), "utf8");
+  process.stderr.write(`reclued ${existing.length} puzzles (${changed} clues changed)\n`);
+}
+
 async function main() {
   const started = Date.now();
   process.stderr.write("building lexicon...\n");
   const words = await buildLexicon({ maxTier: TIER.UNCOMMON });
   process.stderr.write(`  ${words.length} clued answers\n`);
+
+  if (process.argv.includes("--reclue")) {
+    await reclue(words);
+    return;
+  }
 
   // One index per plan: the plan's ceiling, further tightened for short answers
   // so a 3x3 never leans on a word nobody has met.

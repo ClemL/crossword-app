@@ -76,8 +76,14 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
   /** @type {Map<string, {word: string, clues: string[], tier: number, rank: number}>} */
   const entries = new Map();
 
+  // A clue that spells out its own answer is not a clue. Checked on whole
+  // words, so "Hearing organ" is still fine for EAR.
+  const givesItAway = (word, clue) => new RegExp(`\\b${word}\\b`, "i").test(clue);
+
   const add = (word, clues, tier, rank) => {
     if (!/^[A-Z]{3,15}$/.test(word) || blocked(word)) return;
+    clues = clues.filter((c) => !givesItAway(word, c));
+    if (clues.length === 0) return;
     const existing = entries.get(word);
     if (existing) {
       if (tier < existing.tier) {
@@ -127,13 +133,13 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
       if (ownRank === undefined || !realWords.has(form)) continue;
       const tier = Math.max(TIER.COMMON, tierForRank(ownRank));
       if (tier > maxTier) continue;
-      entries.set(form, {
-        word: form,
-        clues: base.clues.filter((c) => !c.includes("___")).slice(0, 2).map((c) => tagClue(c, kind)),
-        tier,
-        rank: ownRank,
-        derived: true,
-      });
+      const clues = base.clues
+        .filter((c) => !c.includes("___"))
+        .slice(0, 2)
+        .map((c) => tagClue(c, kind))
+        .filter((c) => !givesItAway(form, c));
+      if (clues.length === 0) continue;
+      entries.set(form, { word: form, clues, tier, rank: ownRank, derived: true });
     }
   }
 

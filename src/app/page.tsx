@@ -114,8 +114,8 @@ export default function HomePage() {
         <p>
           Clues are built from a hand-written bank plus the public-domain Webster&apos;s 1913
           dictionary — so a few read a little antique. A clue ending{" "}
-          <em>&hellip;, with &ldquo;ED&rdquo; added</em> means exactly that: solve the clue, then
-          add the ending.
+          <em>&hellip;, plus &ldquo;ED&rdquo;</em> means exactly that: solve the clue, then add the
+          ending.
         </p>
       </footer>
     </main>

@@ -70,5 +70,5 @@ export function derive(word) {
 }
 
 export function tagClue(clue, kind) {
-  return `${clue}, with "${TAGS[kind]}" added`;
+  return `${clue}, plus "${TAGS[kind]}"`;
 }

@@ -53,10 +53,11 @@ Puzzles are generated ahead of time by `npm run gen:puzzles` and committed to
 
 The answer bank combines hand-written clues for common short fill with definitions from the
 public-domain **Webster's 1913** dictionary, plus inflected forms derived from words that already
-have clues. A clue tagged `(-ED form)` means the answer is that word with the ending added.
+have clues. A clue ending `…, plus "ED"` means exactly that: solve the clue, then add the ending.
 
 Grids are random 180°-rotationally-symmetric block patterns, filled by a constraint solver with
-arc-consistency propagation. See [CLAUDE.md](./CLAUDE.md) for the details.
+arc-consistency propagation. `npm run reclue` re-picks clues for the existing grids without the
+minutes-long refill. See [CLAUDE.md](./CLAUDE.md) for the details.
 
 No commercial crossword content is used.
 

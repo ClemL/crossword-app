@@ -92,12 +92,21 @@ export function cleanClues(word, raw, { maxSenses = 5 } = {}) {
   return out;
 }
 
+// Below this a sense is usually a stub of an archaic one ("lever: more
+// agreeable") rather than the definition a solver would recognise.
+const SUBSTANTIAL = 20;
+
 /**
- * The single best clue for a word: the most substantial of the first few
- * senses, which skips Webster's habit of leading with an archaic one.
+ * The single best clue for a word: the first sense with some substance to it.
+ * Webster orders senses oldest-first, so taking the first sense outright leads
+ * with archaic meanings, while always taking the longest skips past the plain
+ * modern definition in favour of some technical nineteenth-century usage.
  */
 export function cleanClue(word, raw) {
   const options = cleanClues(word, raw);
   if (options.length === 0) return null;
-  return options.reduce((best, c) => (c.length > best.length ? c : best));
+  return (
+    options.find((c) => c.length >= SUBSTANTIAL) ??
+    options.reduce((best, c) => (c.length > best.length ? c : best))
+  );
 }
