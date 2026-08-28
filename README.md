@@ -12,11 +12,10 @@ everything lives on your device.
 
 * **Two players.** Pick Clem or Lori on first visit and switch from the header. Each has their own
   puzzles, saved grids and stats; nothing is shared but the theme setting.
-* **Themed puzzles.** Both banks are built from a shared topic list — rock climbing, golf, Reddit,
-  memes, Korea, Japan, Hong Kong, Vietnam, PCs, video gaming, board games, Boston, Arlington MA,
-  Quincy MA, healthcare and big pharma. Clem's bank also draws on programming, finance, SQL, C#,
-  Magic: the Gathering, graphics cards, Dota, StarCraft, Elden Ring, Red Dead Redemption 2,
-  sysadmin and helpdesk work, and hospital data.
+* **Themed puzzles.** Both banks share a main topic list, and each player has their own extra
+  topics on top of it. The full list for whoever is playing is under **Puzzle topics** in the
+  options menu.
+* **Changelog** in the footer: the newest line is always visible, and clicking it opens the lot.
 * **Three grid sizes**, five puzzles each per player, each with its own par time and stats.
 * **Timer** that pauses when you switch tabs, so a puzzle left open overnight does not report a
   twelve-hour solve.

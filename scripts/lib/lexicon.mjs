@@ -5,7 +5,8 @@ import { loadCommon, loadWebster, loadWordSet } from "./fetch-sources.mjs";
 import { derive, tagClue } from "./inflect.mjs";
 import { SHARED_THEMES } from "./themes-shared.mjs";
 import { CLEM_THEMES } from "./themes-clem.mjs";
-import { SHARED_SHORT, CLEM_SHORT } from "./themes-short.mjs";
+import { LORI_THEMES } from "./themes-lori.mjs";
+import { SHARED_SHORT, CLEM_SHORT, LORI_SHORT } from "./themes-short.mjs";
 import { cleanClue } from "./clean-clue.mjs";
 import { CURATED } from "./curated-clues.mjs";
 import { CURATED_LONG } from "./curated-clues-long.mjs";
@@ -80,7 +81,17 @@ function mergeTopics(...sets) {
 export const THEME_SETS = {
   shared: mergeTopics(SHARED_THEMES, SHARED_SHORT),
   clem: mergeTopics(CLEM_THEMES, CLEM_SHORT),
+  lori: mergeTopics(LORI_THEMES, LORI_SHORT),
 };
+
+/** Topic names in a theme set, for showing the player what their puzzles cover. */
+export function topicsOf(themes) {
+  const out = new Set();
+  for (const name of themes) {
+    for (const topic of Object.keys(THEME_SETS[name] ?? {})) out.add(topic);
+  }
+  return [...out].sort();
+}
 
 function tierForRank(rank) {
   if (rank === undefined) return TIER.OBSCURE;

@@ -107,6 +107,30 @@ const badges = await page.locator(".badge").allInnerTexts();
 check("clean solve is credited", badges.some((b) => /no help/i.test(b)), badges.join(", "));
 await page.screenshot({ path: "/tmp/shot-solved.png" });
 
+// --- options menu, topics and changelog ------------------------------------
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.locator(".menu > .btn").click();
+await page.getByRole("button", { name: "Puzzle topics" }).click();
+await page.waitForSelector(".dialog--panel");
+const topicCount = await page.locator(".dialog__list li").count();
+check("options menu shows the topic list", topicCount > 20, `${topicCount} topics`);
+await page.screenshot({ path: "/tmp/shot-topics.png" });
+
+// A click inside the panel must not close it; only the backdrop should.
+await page.locator(".dialog__list").click({ position: { x: 5, y: 5 } });
+check("clicking inside the modal keeps it open", (await page.locator(".dialog--panel").count()) === 1);
+await page.mouse.click(5, 5);
+check("clicking the backdrop closes the modal", (await page.locator(".dialog--panel").count()) === 0);
+
+const latest = await page.locator(".build-info__latest").innerText();
+check("footer shows the newest changelog line", /^2026-/.test(latest), latest);
+await page.locator(".build-info__latest").click();
+await page.waitForSelector(".dialog--panel");
+const entries = await page.locator(".dialog__list li").allInnerTexts();
+check("changelog lists every entry, newest first", entries.length === 9 && entries[0] === latest, `${entries.length} entries`);
+await page.screenshot({ path: "/tmp/shot-changelog.png" });
+await page.mouse.click(5, 5);
+
 // --- stats -----------------------------------------------------------------
 await page.goto(`${BASE}/stats`, { waitUntil: "networkidle" });
 const heading = await page.locator("h1").innerText();

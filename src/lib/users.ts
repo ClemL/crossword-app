@@ -1,7 +1,10 @@
 export interface User {
   id: string;
   name: string;
-  /** Shown on the profile picker so the two banks are distinguishable. */
+  /**
+   * One line for the profile picker. Deliberately not a list of topics — the
+   * full list lives behind Puzzle topics in the options menu.
+   */
   blurb: string;
 }
 
@@ -11,12 +14,12 @@ export const USERS: User[] = [
   {
     id: "clem",
     name: "Clem",
-    blurb: "Climbing, golf, Boston and Japan — plus SQL, Dota, Elden Ring and graphics cards.",
+    blurb: "Puzzles built around Clem's topics.",
   },
   {
     id: "lori",
     name: "Lori",
-    blurb: "Climbing, golf, memes, Korea, Japan, Boston, healthcare and the rest.",
+    blurb: "Puzzles built around Lori's topics.",
   },
 ];
 

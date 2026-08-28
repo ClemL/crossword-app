@@ -41,11 +41,13 @@ There are two profiles, **clem** and **lori**. A profile is not a login — it d
 puzzles you see and which slice of `localStorage` your progress goes into. It is chosen on first
 visit and switchable from the header.
 
-Puzzles are built around a list of topics. Both players share the main list (rock climbing, golf,
-Reddit, memes, Korea, Japan, Hong Kong, Vietnam, PCs, video gaming, board games, Boston, Arlington
-MA, Quincy MA, healthcare, big pharma); Clem's bank also draws on programming, finance, SQL, C#,
-Magic: the Gathering, graphics cards, Dota, StarCraft, Elden Ring, Red Dead Redemption 2, sysadmin
-and helpdesk work, and hospital data.
+Puzzles are built around a list of topics. Both players share a main list, and each has their own
+extra topics on top of it — Clem's run to programming and games, Lori's to travel, cards and the
+house. The lists live in `scripts/lib/themes-*.mjs`; the generator writes the topic names out to
+`src/data/topics.json` so the app can show them without duplicating the list.
+
+The topic list is **not** printed on the page. It sits behind **Puzzle topics** in the options menu
+(the ☰ button), so the home page stays about the puzzles.
 
 ## Stack
 
@@ -72,9 +74,18 @@ public/            manifest, service worker template, icons
 * `src/lib/users.ts` — the two profiles.
 * `src/lib/storage.ts` — every localStorage read/write. Progress and stats are per player
   (`crossword:v1:<player>:*`); the theme and the chosen player are not.
-* `scripts/lib/themes-*.mjs` — the themed answer bank: `themes-shared.mjs` and `themes-clem.mjs`
-  hold the longer answers, `themes-short.mjs` the three-to-five-letter ones. Adding entries here is
-  the single most effective way to raise how much of a grid comes out on-theme.
+* `scripts/lib/themes-*.mjs` — the themed answer bank: `themes-shared.mjs`, `themes-clem.mjs` and
+  `themes-lori.mjs` hold the longer answers, `themes-short.mjs` the three-to-five-letter ones for
+  all three sets. Adding entries here is the single most effective way to raise how much of a grid
+  comes out on-theme.
+* `src/components/Modal.tsx` — one overlay-and-panel dialog, shared by the changelog and the topic
+  list. It closes on a backdrop click only when the click target *is* the backdrop; without that
+  check a click on the list inside it would close the dialog too.
+* `src/components/SiteFooter.tsx` — build info plus the newest changelog line, which opens the full
+  changelog.
+* `public/updates.txt` — the changelog. One entry per line, **oldest first**; the footer shows the
+  last line and the modal reverses the file. Append a line here whenever you ship something worth a
+  player noticing. A missing or empty file is handled silently.
 * `src/lib/useStorage.ts` — `useSyncExternalStore` wrapper so components re-read storage on change
   instead of copying it into state inside an effect.
 * `public/sw.js` — offline cache. `__PRECACHE__` is replaced at build time.
@@ -143,6 +154,7 @@ the convention is explained on the home page.
 * Anything touching `localStorage` needs a `typeof window` guard or must run after hydration —
   the app is prerendered.
 * Bump the `NS` constant in `storage.ts` if a saved-data shape changes incompatibly.
+* Add a line to `public/updates.txt` when you ship a user-visible change.
 * A puzzle's `user` field is the key its progress and stats are filed under — never the currently
   selected player. Opening someone else's link offers to switch rather than writing into their
   history.

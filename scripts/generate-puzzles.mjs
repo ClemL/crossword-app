@@ -8,19 +8,20 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildLexicon, indexLexicon, tierCapForLength, TIER } from "./lib/lexicon.mjs";
+import { buildLexicon, indexLexicon, tierCapForLength, topicsOf, TIER } from "./lib/lexicon.mjs";
 import { analyze, emptyPattern, makeRng, randomPattern } from "./lib/grid.mjs";
 import { pickSeeds, themedByLength } from "./lib/theme-seed.mjs";
 import { createFiller } from "./lib/fill.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, "..", "src", "data", "puzzles.json");
+const TOPICS_OUT = path.join(HERE, "..", "src", "data", "topics.json");
 
 // Each player gets their own bank. Both draw on the shared topics; Clem's also
 // draws on his own list, so his grids run to SQL, Dota and graphics cards.
 const USERS = [
   { id: "clem", themes: ["shared", "clem"] },
-  { id: "lori", themes: ["shared"] },
+  { id: "lori", themes: ["shared", "lori"] },
 ];
 
 // Each plan is tried down a ladder, narrowest bank first. The fewer ordinary
@@ -266,6 +267,11 @@ async function main() {
 
   await mkdir(path.dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(puzzles), "utf8");
+  await writeFile(
+    TOPICS_OUT,
+    JSON.stringify(Object.fromEntries(USERS.map((u) => [u.id, topicsOf(u.themes)])), null, 2),
+    "utf8",
+  );
   process.stderr.write(
     `wrote ${puzzles.length} puzzles to ${path.relative(process.cwd(), OUT)} ` +
       `in ${((Date.now() - started) / 1000).toFixed(1)}s\n`,
