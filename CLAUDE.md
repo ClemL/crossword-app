@@ -14,8 +14,8 @@ These apply to every request in this repo.
 * **Verify the app builds (`npm run build`) before opening the PR.**
 * **Post the links at the end of every response** — the Vercel app, the Vercel pipeline and the git
   repo — so they can be opened quickly:
-  * App: https://crossword-app.vercel.app/
-  * Pipeline: https://vercel.com/clem21/crossword-app
+  * App: https://clem-crossword-app.vercel.app/
+  * Pipeline: https://vercel.com/clem21/clem-crossword-app
   * Repo: https://github.com/ClemL/crossword-app
 
   (For reference, the sibling project uses the same shape:

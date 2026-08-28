@@ -4,8 +4,8 @@ Three sizes of crossword — a 3x3 **micro**, a 5x5 **mini** and a full 15x15 **
 around a list of topics, with a timer, solve metrics and offline play. No account, no backend:
 everything lives on your device.
 
-* **App:** https://crossword-app.vercel.app/
-* **Pipeline:** https://vercel.com/clem21/crossword-app
+* **App:** https://clem-crossword-app.vercel.app/
+* **Pipeline:** https://vercel.com/clem21/clem-crossword-app
 * **Repo:** https://github.com/ClemL/crossword-app
 
 ## Features
