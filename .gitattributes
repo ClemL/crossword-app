@@ -1,0 +1,4 @@
+# Normalise line endings so a checkout is identical on every machine.
+* text=auto eol=lf
+
+*.png binary
