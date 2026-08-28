@@ -16,7 +16,9 @@ everything lives on your device.
   topics on top of it. The full list for whoever is playing is under **Puzzle topics** in the
   options menu.
 * **Changelog** in the footer: the newest line is always visible, and clicking it opens the lot.
-* **Three grid sizes**, five puzzles each per player, each with its own par time and stats.
+* **A puzzle of the day.** A new micro and mini every day, and a fresh 15x15 each week, ninety days
+  of them laid out per player. Which puzzle a date gets is fixed and offline — no server decides it.
+* **Three grid sizes**, each with its own par time and stats.
 * **Timer** that pauses when you switch tabs, so a puzzle left open overnight does not report a
   twelve-hour solve.
 * **Metrics** — best, median and average time per size, current and longest day streak, how often

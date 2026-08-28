@@ -13,10 +13,10 @@ import { ProgressBar } from "./ProgressBar";
 import { Toolbar } from "./Toolbar";
 import { useGame } from "@/lib/useGame";
 import { useSettings } from "@/lib/useSettings";
-import { nextPuzzle } from "@/lib/puzzles";
+import { nextForDay } from "@/lib/daily";
 import { EMPTY_PROGRESS, loadProgress, loadStats, type PuzzleProgress } from "@/lib/storage";
 import { useHydrated, useStorageVersion } from "@/lib/useStorage";
-import { SIZE_LABEL, type Clue, type Puzzle } from "@/lib/types";
+import { SIZES, SIZE_LABEL, type Clue, type Puzzle } from "@/lib/types";
 import { getUser } from "@/lib/users";
 
 /**
@@ -119,7 +119,11 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [actions, settings.skipFilled]);
 
-  const next = useMemo(() => nextPuzzle(puzzle), [puzzle]);
+  // Only offer a "next" when it is another of the same day's puzzles.
+  const next = useMemo(
+    () => nextForDay(puzzle.user, puzzle, SIZES.map((s) => s.key)),
+    [puzzle],
+  );
   const title = `${SIZE_LABEL[puzzle.size]} #${puzzle.ordinal}`;
   const subtitle = `${puzzle.rows} x ${puzzle.cols} · ${game.progress.filled}/${game.progress.total} squares`;
 
@@ -227,7 +231,7 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
           elapsedMs={game.elapsedMs}
           bestMs={bestMs}
           clean={!game.usedHelp}
-          nextHref={next && next.id !== puzzle.id ? `/play?id=${next.id}` : undefined}
+          nextHref={next ? `/play?id=${next.id}` : undefined}
           onDismiss={game.dismissSolved}
         />
       )}
