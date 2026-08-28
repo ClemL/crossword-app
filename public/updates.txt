@@ -13,3 +13,5 @@
 2026-08-28T18:05:00Z - Share a solve: time, badges and the grid's shape
 2026-08-28T18:05:00Z - An all-clues button on phones, showing what is already filled in
 2026-08-28T18:05:00Z - Fixed taps on a square flipping between across and down on phones
+2026-08-28T21:15:00Z - Confetti when you finish a puzzle
+2026-08-28T21:15:00Z - A progress bar under the toolbar showing how much of the grid is filled

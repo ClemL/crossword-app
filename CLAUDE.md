@@ -75,6 +75,8 @@ public/            manifest, service worker template, icons
   and clear touch many squares at once and a per-square log gets those wrong.
 * `src/components/AllCluesPanel.tsx` — every clue plus what is already typed into it. The clue
   columns sit beside the grid on a wide screen; this is how you read them on a phone.
+* `src/components/Confetti.tsx` — one canvas burst on a solve. Draws nothing at all when the
+  player has asked for reduced motion.
 * `src/lib/share.ts` — the copied result card. The emoji grid is skipped above 121 squares, since a
   15x15 would be 225 emoji in someone's chat.
 * `src/lib/users.ts` — the two profiles.
@@ -105,7 +107,7 @@ npm run dev          # local dev server
 npm run build        # next build + service-worker precache injection (run before every PR)
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
-npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: ~50 min, needs network once)
+npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: ~25 min, needs network once)
 npm run reclue       # re-pick clues for the existing grids (fast) after a clue-rule change
 npm run gen:icons    # regenerate the PNG app icons
 ```
@@ -114,6 +116,16 @@ npm run gen:icons    # regenerate the PNG app icons
 
 `npm run gen:puzzles` builds the bank offline and writes `src/data/puzzles.json`, which is
 committed. The app never generates puzzles at runtime.
+
+**The generator is deterministic.** The same seed produces the same thirty puzzles every time, so
+re-running it does not give you a new set — it reproduces the one already committed. Pass a seed to
+get a different bank:
+
+```bash
+npm run gen:puzzles -- --seed=2               # any number
+npm run gen:puzzles -- --seed=2026-09-01      # non-numeric seeds are hashed
+GEN_SEED=2 npm run gen:puzzles                # same thing via the environment
+```
 
 1. **Answer bank** (`scripts/lib/lexicon.mjs`) — the themed answers, plus hand-written clues for
    common short fill, plus the public-domain Webster's 1913 dictionary for everything else, plus
