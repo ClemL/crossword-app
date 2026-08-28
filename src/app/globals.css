@@ -311,6 +311,107 @@ button {
 
 .resume__arrow { font-size: 1.2rem; }
 
+/* ------------------------------------------------------- today + earlier -- */
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.today__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.today__head h2 { font-size: 1.25rem; }
+
+.today__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.tcard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: border-color 0.12s ease, transform 0.08s ease;
+}
+
+.tcard:hover { border-color: var(--accent); transform: translateY(-2px); }
+.tcard--solved { background: color-mix(in srgb, var(--good) 8%, var(--surface)); }
+.tcard--in-progress { border-color: var(--accent); }
+
+.tcard__size { font-size: 1.15rem; font-weight: 700; }
+.tcard__dim {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.tcard__state { font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tcard--solved .tcard__state { color: var(--good); }
+.tcard--in-progress .tcard__state { color: var(--accent); }
+.tcard--new .tcard__state { color: var(--ink-soft); }
+
+.earlier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.earlier h2 { font-size: 1.1rem; }
+
+.earlier__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.earlier__day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.earlier__date {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  min-width: 7em;
+}
+
+.earlier__chips { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+.chip {
+  padding: 0.22rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip:hover { border-color: var(--line-strong); }
+.chip--solved { background: color-mix(in srgb, var(--good) 14%, var(--surface)); color: var(--good); }
+.chip--in-progress { border-color: var(--accent); color: var(--accent); }
+.chip--new { color: var(--ink-soft); }
+
 /* --------------------------------------------------------- size sections -- */
 .size-section {
   display: flex;

@@ -43,6 +43,7 @@ const server = createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(PORT, resolve));
 
 const puzzles = JSON.parse(await readFile("src/data/puzzles.json", "utf8"));
+const schedule = JSON.parse(await readFile("src/data/schedule.json", "utf8"));
 const PLAYER = "clem";
 const mine = puzzles.filter((p) => p.user === PLAYER);
 const target = mine.find((p) => p.size === "micro") ?? mine[0];
@@ -75,11 +76,39 @@ await page.waitForSelector(".picker__card");
 check("first visit asks who is playing", true);
 await page.screenshot({ path: "/tmp/shot-picker.png" });
 await page.locator(".picker__card").first().click();
-await page.waitForSelector(".size-section");
+await page.waitForSelector(".today");
 await page.screenshot({ path: "/tmp/shot-home.png", fullPage: true });
 
-const cardCount = await page.locator(".pcard").count();
-check("bank lists that player's puzzles", cardCount === mine.length, `${cardCount} cards`);
+const todayCards = await page.locator(".tcard").count();
+check("today offers one puzzle per size", todayCards === 3, `${todayCards} cards`);
+
+const todayLinks = await page.locator(".tcard").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+await page.reload({ waitUntil: "networkidle" });
+const todayAgain = await page.locator(".tcard").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+check(
+  "the same date always resolves to the same puzzles",
+  JSON.stringify(todayLinks) === JSON.stringify(todayAgain),
+  todayLinks.join(" "),
+);
+
+const dayRows = await page.locator(".earlier__day").count();
+check("earlier days are listed", dayRows === 14, `${dayRows} days`);
+
+const epochDays = Math.round(
+  (new Date().setHours(0, 0, 0, 0) -
+    new Date(...schedule.epoch.split("-").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n)))).setHours(0, 0, 0, 0)) /
+    86400000,
+);
+const expected = schedule.players[PLAYER].micro[
+  ((epochDays % schedule.days) + schedule.days) % schedule.days
+];
+check(
+  "today's micro matches the committed schedule",
+  todayLinks.some((href) => href.endsWith(expected)),
+  `${expected} in ${todayLinks.join(" ")}`,
+);
+await page.getByRole("button", { name: "Show more days" }).click();
+check("show-more extends the history", (await page.locator(".earlier__day").count()) === 28);
 
 // --- the other player's puzzles are kept separate ---------------------------
 const theirs = puzzles.find((p) => p.user !== PLAYER);

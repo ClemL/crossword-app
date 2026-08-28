@@ -33,6 +33,11 @@ const SEED = (() => {
 })();
 const OUT = path.join(HERE, "..", "src", "data", "puzzles.json");
 const TOPICS_OUT = path.join(HERE, "..", "src", "data", "topics.json");
+const SCHEDULE_OUT = path.join(HERE, "..", "src", "data", "schedule.json");
+
+/** How far ahead the date-to-puzzle schedule is laid out. */
+const SCHEDULE_DAYS = 90;
+const EPOCH = process.env.GEN_EPOCH ?? new Date().toISOString().slice(0, 10);
 
 // Each player gets their own bank. Both draw on the shared topics; Clem's also
 // draws on his own list, so his grids run to SQL, Dota and graphics cards.
@@ -48,7 +53,9 @@ const USERS = [
 const PLANS = [
   {
     size: "micro",
-    count: 5,
+    // A 3x3 fills in milliseconds, so every day gets its own.
+    count: SCHEDULE_DAYS,
+    cadence: "daily",
     dim: 3,
     blocks: 0,
     maxRun: 3,
@@ -62,7 +69,9 @@ const PLANS = [
   },
   {
     size: "mini",
-    count: 5,
+    // ~4.5s each: ninety a player is a quarter of an hour, which is fine.
+    count: SCHEDULE_DAYS,
+    cadence: "daily",
     dim: 5,
     // A blockless 5x5 is a double word square: possible, but it burns most of
     // the attempt budget, so keep a couple of blocks.
@@ -80,7 +89,11 @@ const PLANS = [
   },
   {
     size: "daily",
-    count: 5,
+    // ~104s each. Ninety a player would be five hours of solving, so the big
+    // grid turns over weekly instead -- which is also how anyone actually plays
+    // a 15x15.
+    count: Math.ceil(SCHEDULE_DAYS / 7),
+    cadence: "weekly",
     dim: 15,
     blocks: [54, 56, 58],
     maxRun: 7,
@@ -172,6 +185,51 @@ async function reclue(banks) {
 
   await writeFile(OUT, JSON.stringify(existing), "utf8");
   process.stderr.write(`reclued ${existing.length} puzzles (${changed} clues changed)\n`);
+}
+
+/**
+ * Lay out which puzzle each date gets. Every size gets one entry per day even
+ * when it turns over weekly, so the app's lookup is the same for all of them.
+ *
+ * The pool is walked in shuffled cycles rather than in order, so a bank smaller
+ * than the schedule repeats as late as possible rather than in a visible loop.
+ */
+function buildSchedule(puzzles, rng) {
+  const players = {};
+  const cadence = {};
+
+  for (const plan of PLANS) cadence[plan.size] = plan.cadence;
+
+  for (const user of USERS) {
+    players[user.id] = {};
+    for (const plan of PLANS) {
+      const pool = puzzles.filter((p) => p.user === user.id && p.size === plan.size).map((p) => p.id);
+      if (pool.length === 0) continue;
+
+      const every = plan.cadence === "weekly" ? 7 : 1;
+      const slots = Math.ceil(SCHEDULE_DAYS / every);
+      const picks = [];
+      while (picks.length < slots) {
+        const cycle = [...pool];
+        for (let i = cycle.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [cycle[i], cycle[j]] = [cycle[j], cycle[i]];
+        }
+        // Don't let a cycle boundary put the same puzzle on two adjacent slots.
+        if (picks.length > 0 && cycle[0] === picks[picks.length - 1] && cycle.length > 1) {
+          [cycle[0], cycle[1]] = [cycle[1], cycle[0]];
+        }
+        picks.push(...cycle);
+      }
+
+      players[user.id][plan.size] = Array.from(
+        { length: SCHEDULE_DAYS },
+        (_, day) => picks[Math.floor(day / every)],
+      );
+    }
+  }
+
+  return { epoch: EPOCH, days: SCHEDULE_DAYS, cadence, players };
 }
 
 async function main() {
@@ -289,6 +347,9 @@ async function main() {
     JSON.stringify(Object.fromEntries(USERS.map((u) => [u.id, topicsOf(u.themes)])), null, 2),
     "utf8",
   );
+  const schedule = buildSchedule(puzzles, makeRng(SEED + 31337));
+  await writeFile(SCHEDULE_OUT, JSON.stringify(schedule), "utf8");
+  process.stderr.write(`scheduled ${SCHEDULE_DAYS} days from ${EPOCH}\n`);
   process.stderr.write(
     `wrote ${puzzles.length} puzzles to ${path.relative(process.cwd(), OUT)} ` +
       `in ${((Date.now() - started) / 1000).toFixed(1)}s\n`,

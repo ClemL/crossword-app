@@ -26,11 +26,25 @@ These apply to every request in this repo.
 
 A crossword app in the spirit of the NYT one, with three sizes:
 
-| Size  | Grid    | Per player | Feel                        |
-| ----- | ------- | ---------- | --------------------------- |
-| Micro | 3 x 3   | 5          | Six answers, about a minute |
-| Mini  | 5 x 5   | 5          | Coffee break                |
-| Daily | 15 x 15 | 5          | A full grid                 |
+| Size  | Grid    | Per player | Turns over | Feel                        |
+| ----- | ------- | ---------- | ---------- | --------------------------- |
+| Micro | 3 x 3   | 90         | Daily      | Six answers, about a minute |
+| Mini  | 5 x 5   | 90         | Daily      | Coffee break                |
+| Daily | 15 x 15 | 13         | Weekly     | A full grid                 |
+
+### Which puzzle a date gets
+
+`src/data/schedule.json`, written by the generator, maps ninety days from an epoch onto puzzle ids,
+per player and per size. `src/lib/daily.ts` turns today's local date into an index into it. The
+schedule wraps rather than running out, so dates before the epoch and after day ninety still resolve
+to a puzzle — the app never hits a dead end because the bank was laid out a while ago.
+
+Cadence is driven by what the generator can actually produce. A 3x3 fills in milliseconds and a 5x5
+in about four and a half seconds, so ninety of each per player is minutes of work. A 15x15 averages
+**104 seconds**, so ninety a player would be over five hours; the big grid turns over weekly
+instead, which is also how anyone actually plays one. The schedule still stores one entry per day
+for every size — a weekly puzzle simply repeats across its seven days — so the app's lookup is the
+same for all three.
 
 It is a fully client-side app: a timer, solve metrics, saved progress and the whole puzzle bank live
 on the device. There is no backend and no account.
