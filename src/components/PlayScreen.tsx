@@ -31,7 +31,7 @@ export function PlayScreen({ puzzle }: { puzzle: Puzzle }) {
       </main>
     );
   }
-  return <PlayGame puzzle={puzzle} saved={loadProgress(puzzle.id) ?? EMPTY_PROGRESS} />;
+  return <PlayGame puzzle={puzzle} saved={loadProgress(puzzle.user, puzzle.id) ?? EMPTY_PROGRESS} />;
 }
 
 function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) {
@@ -39,8 +39,8 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
   const { settings } = useSettings();
   const storageVersion = useStorageVersion();
   const bestMs = useMemo(
-    () => (storageVersion >= 0 ? (loadStats().best[puzzle.id] ?? null) : null),
-    [puzzle.id, storageVersion],
+    () => (storageVersion >= 0 ? (loadStats(puzzle.user).best[puzzle.id] ?? null) : null),
+    [puzzle.id, puzzle.user, storageVersion],
   );
 
   const { actions, entries, status } = game;

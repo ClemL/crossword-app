@@ -7,15 +7,21 @@ import { SparkBars } from "@/components/SparkBars";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatDuration, formatRelative, pluralize } from "@/lib/format";
 import { computeStreaks, summarizeOverall, summarizeSize } from "@/lib/stats";
-import { EMPTY_STATS, loadStats, resetEverything } from "@/lib/storage";
+import { EMPTY_STATS, loadStats, resetUser } from "@/lib/storage";
 import { useStorageVersion } from "@/lib/useStorage";
+import { useUser } from "@/lib/useUser";
+import { UserSwitch } from "@/components/UserSwitch";
 import { PUZZLES_BY_ID } from "@/lib/puzzles";
 import { SIZES, SIZE_LABEL } from "@/lib/types";
 
 export default function StatsPage() {
+  const { user } = useUser();
   const version = useStorageVersion();
-  const ready = version >= 0;
-  const stats = useMemo(() => (version >= 0 ? loadStats() : EMPTY_STATS), [version]);
+  const ready = version >= 0 && user !== null;
+  const stats = useMemo(
+    () => (version >= 0 && user ? loadStats(user.id) : EMPTY_STATS),
+    [version, user],
+  );
   const [confirming, setConfirming] = useState(false);
 
   const overall = useMemo(() => summarizeOverall(stats), [stats]);
@@ -30,12 +36,13 @@ export default function StatsPage() {
       <OfflineBadge />
       <header className="hero">
         <div>
-          <h1 className="hero__title">Your stats</h1>
+          <h1 className="hero__title">{user ? `${user.name}'s stats` : "Stats"}</h1>
           <p className="hero__sub">
             Recorded on this device only — nothing is uploaded anywhere.
           </p>
         </div>
         <div className="hero__side">
+          <UserSwitch />
           <ThemeToggle />
           <Link className="btn" href="/">
             Puzzles
@@ -187,9 +194,10 @@ export default function StatsPage() {
       )}
 
       <section className="card card--danger">
-        <h2>Reset</h2>
+        <h2>Reset {user?.name}</h2>
         <p className="muted">
-          Clears every saved grid, timer and stat on this device. There is no undo.
+          Clears {user ? `${user.name}'s` : "this player's"} saved grids, timers and stats on this
+          device. The other player is left alone. There is no undo.
         </p>
         {confirming ? (
           <div className="row">
@@ -197,7 +205,7 @@ export default function StatsPage() {
               type="button"
               className="btn btn--danger"
               onClick={() => {
-                resetEverything();
+                if (user) resetUser(user.id);
                 setConfirming(false);
               }}
             >

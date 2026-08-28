@@ -5,10 +5,12 @@
 
 const NS = "crossword:v1";
 
+// Progress and stats are per player; the theme and the chosen player are not.
 export const KEYS = {
-  progress: (puzzleId: string) => `${NS}:progress:${puzzleId}`,
-  stats: `${NS}:stats`,
+  progress: (user: string, puzzleId: string) => `${NS}:${user}:progress:${puzzleId}`,
+  stats: (user: string) => `${NS}:${user}:stats`,
   settings: `${NS}:settings`,
+  activeUser: `${NS}:user`,
 };
 
 export function readJson<T>(key: string, fallback: T): T {
@@ -88,12 +90,12 @@ export const EMPTY_PROGRESS: PuzzleProgress = {
   autocheck: false,
 };
 
-export function loadProgress(puzzleId: string): PuzzleProgress {
-  return readJson<PuzzleProgress>(KEYS.progress(puzzleId), EMPTY_PROGRESS);
+export function loadProgress(user: string, puzzleId: string): PuzzleProgress {
+  return readJson<PuzzleProgress>(KEYS.progress(user, puzzleId), EMPTY_PROGRESS);
 }
 
-export function saveProgress(puzzleId: string, progress: PuzzleProgress): void {
-  writeJson(KEYS.progress(puzzleId), progress);
+export function saveProgress(user: string, puzzleId: string, progress: PuzzleProgress): void {
+  writeJson(KEYS.progress(user, puzzleId), progress);
 }
 
 export interface SolveRecord {
@@ -116,20 +118,39 @@ export interface StatsState {
 
 export const EMPTY_STATS: StatsState = { solves: [], best: {} };
 
-export function loadStats(): StatsState {
-  return readJson<StatsState>(KEYS.stats, EMPTY_STATS);
+export function loadStats(user: string): StatsState {
+  return readJson<StatsState>(KEYS.stats(user), EMPTY_STATS);
 }
 
-export function recordSolve(record: SolveRecord): StatsState {
-  const stats = loadStats();
+export function recordSolve(user: string, record: SolveRecord): StatsState {
+  const stats = loadStats(user);
   const next: StatsState = {
     solves: [...stats.solves, record].slice(-500),
     best: { ...stats.best },
   };
   const previous = next.best[record.puzzleId];
   if (previous === undefined || record.ms < previous) next.best[record.puzzleId] = record.ms;
-  writeJson(KEYS.stats, next);
+  writeJson(KEYS.stats(user), next);
   return next;
+}
+
+export function loadActiveUser(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(KEYS.activeUser);
+  } catch {
+    return null;
+  }
+}
+
+export function saveActiveUser(user: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(KEYS.activeUser, user);
+    window.dispatchEvent(new CustomEvent("crossword:storage", { detail: { key: KEYS.activeUser } }));
+  } catch {
+    /* ignore */
+  }
 }
 
 export interface Settings {
@@ -152,6 +173,7 @@ export function saveSettings(settings: Settings): void {
   writeJson(KEYS.settings, settings);
 }
 
-export function resetEverything(): void {
-  for (const key of listKeys(NS)) removeKey(key);
+/** Clears one player's saved grids and stats, leaving the other player alone. */
+export function resetUser(user: string): void {
+  for (const key of listKeys(`${NS}:${user}:`)) removeKey(key);
 }

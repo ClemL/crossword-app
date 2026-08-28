@@ -1,7 +1,8 @@
 # Crossword
 
-Three sizes of crossword — a 3x3 **micro**, a 5x5 **mini** and a full 15x15 **daily** — with a
-timer, solve metrics and offline play. No account, no backend: everything lives on your device.
+Three sizes of crossword — a 3x3 **micro**, a 5x5 **mini** and a full 15x15 **daily** — built
+around a list of topics, with a timer, solve metrics and offline play. No account, no backend:
+everything lives on your device.
 
 * **App:** https://crossword-app.vercel.app/
 * **Pipeline:** https://vercel.com/clem21/crossword-app
@@ -9,7 +10,14 @@ timer, solve metrics and offline play. No account, no backend: everything lives 
 
 ## Features
 
-* **Three grid sizes** in one bank, each with its own par time and stats.
+* **Two players.** Pick Clem or Lori on first visit and switch from the header. Each has their own
+  puzzles, saved grids and stats; nothing is shared but the theme setting.
+* **Themed puzzles.** Both banks are built from a shared topic list — rock climbing, golf, Reddit,
+  memes, Korea, Japan, Hong Kong, Vietnam, PCs, video gaming, board games, Boston, Arlington MA,
+  Quincy MA, healthcare and big pharma. Clem's bank also draws on programming, finance, SQL, C#,
+  Magic: the Gathering, graphics cards, Dota, StarCraft, Elden Ring, Red Dead Redemption 2,
+  sysadmin and helpdesk work, and hospital data.
+* **Three grid sizes**, five puzzles each per player, each with its own par time and stats.
 * **Timer** that pauses when you switch tabs, so a puzzle left open overnight does not report a
   twelve-hour solve.
 * **Metrics** — best, median and average time per size, current and longest day streak, how often
@@ -51,9 +59,16 @@ npm run lint
 Puzzles are generated ahead of time by `npm run gen:puzzles` and committed to
 `src/data/puzzles.json`; the app never generates them at runtime.
 
-The answer bank combines hand-written clues for common short fill with definitions from the
-public-domain **Webster's 1913** dictionary, plus inflected forms derived from words that already
-have clues. A clue ending `…, plus "ED"` means exactly that: solve the clue, then add the ending.
+The answer bank starts with a few hundred hand-written themed answers, then adds hand-written
+clues for common short fill, definitions from the public-domain **Webster's 1913** dictionary, and
+inflected forms derived from words that already have clues. A clue ending `…, plus "ED"` means
+exactly that: solve the clue, then add the ending.
+
+Themed answers outrank everything else, some are pinned into the grid before solving starts, and
+each puzzle is attempted against progressively wider banks so it lands at the highest themed density
+that still closes. In practice a 3x3 comes out around half to two-thirds themed and a 15x15 nearer a
+quarter — a 15x15 has eighty entries to fill and only so many themed answers to fill them with. The
+lever is vocabulary: adding entries to `scripts/lib/themes-short.mjs` raises the density everywhere.
 
 Grids are random 180°-rotationally-symmetric block patterns, filled by a constraint solver with
 arc-consistency propagation. `npm run reclue` re-picks clues for the existing grids without the

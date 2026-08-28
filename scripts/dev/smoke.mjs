@@ -43,7 +43,9 @@ const server = createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(PORT, resolve));
 
 const puzzles = JSON.parse(await readFile("src/data/puzzles.json", "utf8"));
-const target = puzzles.find((p) => p.size === "micro") ?? puzzles[0];
+const PLAYER = "clem";
+const mine = puzzles.filter((p) => p.user === PLAYER);
+const target = mine.find((p) => p.size === "micro") ?? mine[0];
 
 const browser = await chromium.launch({ executablePath: CHROME });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -64,10 +66,26 @@ const check = (label, ok, extra = "") => {
   if (!ok) problems.push(`assertion failed: ${label}`);
 };
 
-// --- bank ------------------------------------------------------------------
+// --- picking a player ------------------------------------------------------
 await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForSelector(".picker__card");
+check("first visit asks who is playing", true);
+await page.screenshot({ path: "/tmp/shot-picker.png" });
+await page.locator(".picker__card").first().click();
+await page.waitForSelector(".size-section");
+await page.screenshot({ path: "/tmp/shot-home.png", fullPage: true });
+
 const cardCount = await page.locator(".pcard").count();
-check("bank lists every puzzle", cardCount === puzzles.length, `${cardCount} cards`);
+check("bank lists that player's puzzles", cardCount === mine.length, `${cardCount} cards`);
+
+// --- the other player's puzzles are kept separate ---------------------------
+const theirs = puzzles.find((p) => p.user !== PLAYER);
+if (theirs) {
+  await page.goto(`${BASE}/play?id=${theirs.id}`, { waitUntil: "networkidle" });
+  const offered = await page.locator("h1").innerText();
+  check("another player's link offers to switch", /'s$/.test(offered), offered);
+  await page.goto(BASE, { waitUntil: "networkidle" });
+}
 
 // --- solve -----------------------------------------------------------------
 await page.goto(`${BASE}/play?id=${target.id}`, { waitUntil: "networkidle" });
@@ -91,6 +109,8 @@ await page.screenshot({ path: "/tmp/shot-solved.png" });
 
 // --- stats -----------------------------------------------------------------
 await page.goto(`${BASE}/stats`, { waitUntil: "networkidle" });
+const heading = await page.locator("h1").innerText();
+check("stats are shown per player", heading.toLowerCase().startsWith(PLAYER), heading);
 const solvedValue = await page.locator(".strip__item").first().locator(".strip__value").innerText();
 check("stats records the solve", solvedValue === "1", `shows ${solvedValue}`);
 const streak = await page.locator(".strip__item").nth(1).locator(".strip__value").innerText();
@@ -132,7 +152,9 @@ const mobile = await browser.newContext({
   colorScheme: "dark",
 });
 const mp = await mobile.newPage();
-const daily = puzzles.find((p) => p.size === "daily") ?? target;
+await mp.goto(BASE, { waitUntil: "networkidle" });
+await mp.locator(".picker__card").first().click().catch(() => {});
+const daily = mine.find((p) => p.size === "daily") ?? target;
 await mp.goto(`${BASE}/play?id=${daily.id}`, { waitUntil: "networkidle" });
 await mp.waitForSelector(".grid");
 await mp.screenshot({ path: "/tmp/shot-mobile-dark.png" });

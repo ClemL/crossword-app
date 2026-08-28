@@ -44,7 +44,17 @@ export function createFiller(index) {
     return bits;
   }
 
-  function fill(slots, cellCount, { seed = 1, timeBudgetMs = 5000, branch = 20, nodeLimit = 200_000 } = {}) {
+  /**
+   * @param {object} [options]
+   * @param {{slot: number, word: string}[]} [options.seeds] entries pinned before
+   *   the search starts. This is how a themed puzzle gets built: the themed
+   *   answers are placed first and the rest of the grid is filled around them.
+   */
+  function fill(
+    slots,
+    cellCount,
+    { seed = 1, timeBudgetMs = 5000, branch = 20, nodeLimit = 200_000, seeds = null } = {},
+  ) {
     const rng = makeRng(seed);
     const deadline = Date.now() + timeBudgetMs;
 
@@ -184,6 +194,18 @@ export function createFiller(index) {
         if (nodes > nodeLimit || Date.now() > deadline) return false;
       }
       return false;
+    }
+
+    for (const { slot: si, word } of seeds ?? []) {
+      const bucket = index.get(slots[si].cells.length);
+      const id = bucket?.byWord.get(word);
+      if (id === undefined) return null;
+      const single = new Uint32Array(bucket.blocks);
+      single[id >> 5] = 1 << (id & 31);
+      setDomain(si, single);
+      assigned[si] = bucket.list[id];
+      used.add(word);
+      tierSum += bucket.list[id].tier;
     }
 
     if (!propagate(slots.map((_, i) => i), slots.length * 40)) return null;

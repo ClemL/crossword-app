@@ -97,7 +97,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   // --- persistence ---------------------------------------------------------
   const persist = useCallback(
     (patch: Partial<PuzzleProgress> = {}) => {
-      saveProgress(puzzle.id, {
+      saveProgress(puzzle.user, puzzle.id, {
         letters: packLetters(entries),
         pencil: packFlags(pencil),
         revealed: packFlags(revealed),
@@ -111,7 +111,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         ...patch,
       });
     },
-    [puzzle.id, entries, pencil, revealed, elapsedMs, autocheck],
+    [puzzle.id, puzzle.user, entries, pencil, revealed, elapsedMs, autocheck],
   );
 
   useEffect(() => {
@@ -156,7 +156,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       setStatus("solved");
       setJustSolved(true);
       const clean = meta.current.checkCount === 0 && meta.current.revealCount === 0;
-      recordSolve({
+      recordSolve(puzzle.user, {
         puzzleId: puzzle.id,
         size: puzzle.size,
         ms: elapsedMs,
@@ -165,7 +165,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         checks: meta.current.checkCount,
         reveals: meta.current.revealCount,
       });
-      saveProgress(puzzle.id, {
+      saveProgress(puzzle.user, puzzle.id, {
         letters: packLetters(finalEntries),
         pencil: packFlags(pencil),
         revealed: packFlags(revealed),

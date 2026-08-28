@@ -14,6 +14,8 @@ export interface Clue {
 
 export interface Puzzle {
   id: string;
+  /** Which player's bank this puzzle belongs to. */
+  user: string;
   size: PuzzleSize;
   /** 1-based index within its size, used for display ("Mini #4"). */
   ordinal: number;

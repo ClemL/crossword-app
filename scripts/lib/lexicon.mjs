@@ -3,6 +3,9 @@
 // long tail so the 15x15 grids have enough to work with.
 import { loadCommon, loadWebster, loadWordSet } from "./fetch-sources.mjs";
 import { derive, tagClue } from "./inflect.mjs";
+import { SHARED_THEMES } from "./themes-shared.mjs";
+import { CLEM_THEMES } from "./themes-clem.mjs";
+import { SHARED_SHORT, CLEM_SHORT } from "./themes-short.mjs";
 import { cleanClue } from "./clean-clue.mjs";
 import { CURATED } from "./curated-clues.mjs";
 import { CURATED_LONG } from "./curated-clues-long.mjs";
@@ -60,7 +63,24 @@ function blocked(word) {
 // Tier drives both eligibility and how eagerly the filler reaches for a word.
 // 0 = hand-clued, 1-3 = increasingly rare but still in the 50k frequency list,
 // 4 = dictionary-only. Small puzzles stay near the top of this scale.
-export const TIER = { CURATED: 0, COMMON: 1, FAMILIAR: 2, UNCOMMON: 3, OBSCURE: 4 };
+// THEME sits below everything else so the filler reaches for themed answers
+// first wherever the crossings allow one.
+export const TIER = { THEME: -1, CURATED: 0, COMMON: 1, FAMILIAR: 2, UNCOMMON: 3, OBSCURE: 4 };
+
+function mergeTopics(...sets) {
+  const out = {};
+  for (const set of sets) {
+    for (const [topic, items] of Object.entries(set)) {
+      out[topic] = [...(out[topic] ?? []), ...items];
+    }
+  }
+  return out;
+}
+
+export const THEME_SETS = {
+  shared: mergeTopics(SHARED_THEMES, SHARED_SHORT),
+  clem: mergeTopics(CLEM_THEMES, CLEM_SHORT),
+};
 
 function tierForRank(rank) {
   if (rank === undefined) return TIER.OBSCURE;
@@ -69,7 +89,12 @@ function tierForRank(rank) {
   return TIER.UNCOMMON;
 }
 
-export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
+/**
+ * @param {object} options
+ * @param {number} [options.maxTier] ceiling for dictionary fill
+ * @param {string[]} [options.themes] which theme sets to fold in ("shared", "clem")
+ */
+export async function buildLexicon({ maxTier = TIER.OBSCURE, themes = [] } = {}) {
   const webster = await loadWebster();
   const commonRank = await loadCommon();
 
@@ -143,6 +168,27 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE } = {}) {
     }
   }
 
+  // Themed answers go in last and win outright: they replace whatever clue the
+  // dictionary had, because a themed clue is the whole point of them being
+  // here. They also skip the substring blocklist, which would otherwise reject
+  // WARD and AWARD for containing "WAR" -- these are hand-written and vetted.
+  for (const name of themes) {
+    const set = THEME_SETS[name];
+    if (!set) throw new Error(`unknown theme set: ${name}`);
+    for (const [topic, items] of Object.entries(set)) {
+      for (const [word, clue] of items) {
+        if (!/^[A-Z]{3,15}$/.test(word)) throw new Error(`bad themed answer: ${word}`);
+        const existing = entries.get(word);
+        if (existing && existing.tier === TIER.THEME) {
+          if (!existing.clues.includes(clue)) existing.clues.push(clue);
+          if (!existing.topics.includes(topic)) existing.topics.push(topic);
+          continue;
+        }
+        entries.set(word, { word, clues: [clue], tier: TIER.THEME, rank: 0, topics: [topic] });
+      }
+    }
+  }
+
   const words = [...entries.values()].filter((e) => e.tier <= maxTier);
   words.sort((a, b) => a.tier - b.tier || a.rank - b.rank || a.word.localeCompare(b.word));
   return words;
@@ -176,13 +222,15 @@ export function indexLexicon(words) {
     const masks = Array.from({ length: len }, () =>
       Array.from({ length: 26 }, () => new Uint32Array(blocks)),
     );
+    const byWord = new Map();
     list.forEach((entry, i) => {
+      byWord.set(entry.word, i);
       for (let p = 0; p < len; p++) {
         const c = entry.word.charCodeAt(p) - 65;
         masks[p][c][i >> 5] |= 1 << (i & 31);
       }
     });
-    index.set(len, { list, masks, blocks });
+    index.set(len, { list, masks, blocks, byWord });
   }
   return index;
 }
