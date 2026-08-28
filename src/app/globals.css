@@ -164,7 +164,13 @@ button {
   border-color: var(--danger);
   color: #fff;
 }
-.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+
+.btn--icon {
+  padding: 0.45rem 0.6rem;
+  font-size: 1rem;
+  line-height: 1;
+}
 
 /* ----------------------------------------------------------------- pages -- */
 .page {
@@ -616,6 +622,77 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.clue-bar__all {
+  border: 0;
+  background: transparent;
+  padding: 0 0.9rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.clue-bar__all:hover { color: var(--ink); }
+
+/* ------------------------------------------------------- all-clues panel -- */
+.allclues {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.allclues__section h3 {
+  position: sticky;
+  top: 0;
+  margin: 0 0 0.35rem;
+  padding: 0.2rem 0;
+  background: var(--surface);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.allclues__section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.allclues__row {
+  display: grid;
+  grid-template-columns: 2em 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  padding: 0.45rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.allclues__row:hover { background: var(--surface-2); }
+.allclues__row--active { background: var(--highlight); border-left-color: var(--accent); }
+
+.allclues__num { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.allclues__fill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.allclues__row--done .allclues__text { color: var(--ink-soft); }
+.allclues__row--done .allclues__fill { color: var(--good); }
+
 .play__body {
   display: flex;
   flex: 1 1 auto;
@@ -959,6 +1036,7 @@ button {
   .play__clues { display: flex; }
   .keyboard { display: none; }
   .clue-bar { display: none; }
+  .clue-bar__all { display: none; }
 }
 
 @media (max-width: 899px) {

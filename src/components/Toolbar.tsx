@@ -15,13 +15,20 @@ interface ToolbarProps {
   status: GameStatus;
   pencilMode: boolean;
   autocheck: boolean;
+  skipFilled: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   onPause: () => void;
   onCheck: (scope: Scope) => void;
   onReveal: (scope: Scope) => void;
   onClear: (scope: Scope) => void;
+  onClearIncorrect: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onRestart: () => void;
   onTogglePencil: () => void;
   onToggleAutocheck: () => void;
+  onToggleSkipFilled: () => void;
 }
 
 export function Toolbar({
@@ -31,13 +38,20 @@ export function Toolbar({
   status,
   pencilMode,
   autocheck,
+  skipFilled,
+  canUndo,
+  canRedo,
   onPause,
   onCheck,
   onReveal,
   onClear,
+  onClearIncorrect,
+  onUndo,
+  onRedo,
   onRestart,
   onTogglePencil,
   onToggleAutocheck,
+  onToggleSkipFilled,
 }: ToolbarProps) {
   const item = (label: string, action: () => void, close: () => void): ReactNode => (
     <button
@@ -66,8 +80,14 @@ export function Toolbar({
   ];
 
   const moreItems = (close: () => void) => [
+    item("Clear incorrect letters", onClearIncorrect, close),
     item("Clear word", () => onClear("word"), close),
     item("Clear puzzle", () => onClear("puzzle"), close),
+    item(
+      `Skip filled squares: ${skipFilled ? "on" : "off"}`,
+      onToggleSkipFilled,
+      close,
+    ),
     item("Restart (clock too)", onRestart, close),
   ];
 
@@ -97,6 +117,26 @@ export function Toolbar({
       </div>
 
       <div className="toolbar__actions">
+        <button
+          type="button"
+          className="btn btn--ghost btn--icon"
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+          aria-label="Undo"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          className="btn btn--ghost btn--icon"
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Shift+Z)"
+          aria-label="Redo"
+        >
+          ↷
+        </button>
         <button
           type="button"
           className={`btn btn--ghost ${pencilMode ? "btn--on" : ""}`}

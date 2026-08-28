@@ -14,8 +14,8 @@ These apply to every request in this repo.
 * **Verify the app builds (`npm run build`) before opening the PR.**
 * **Post the links at the end of every response** — the Vercel app, the Vercel pipeline and the git
   repo — so they can be opened quickly:
-  * App: https://crossword-app.vercel.app/
-  * Pipeline: https://vercel.com/clem21/crossword-app
+  * App: https://clem-crossword-app.vercel.app/
+  * Pipeline: https://vercel.com/clem21/clem-crossword-app
   * Repo: https://github.com/ClemL/crossword-app
 
   (For reference, the sibling project uses the same shape:
@@ -70,7 +70,13 @@ public/            manifest, service worker template, icons
 
 ### Key files
 
-* `src/lib/useGame.ts` — all gameplay state: letters, cursor, direction, clock, check/reveal.
+* `src/lib/useGame.ts` — all gameplay state: letters, cursor, direction, clock, check/reveal, and
+  the undo history. Undo stores whole-grid snapshots rather than per-square edits, because reveal
+  and clear touch many squares at once and a per-square log gets those wrong.
+* `src/components/AllCluesPanel.tsx` — every clue plus what is already typed into it. The clue
+  columns sit beside the grid on a wide screen; this is how you read them on a phone.
+* `src/lib/share.ts` — the copied result card. The emoji grid is skipped above 121 squares, since a
+  15x15 would be 225 emoji in someone's chat.
 * `src/lib/users.ts` — the two profiles.
 * `src/lib/storage.ts` — every localStorage read/write. Progress and stats are per player
   (`crossword:v1:<player>:*`); the theme and the chosen player are not.
@@ -153,6 +159,9 @@ the convention is explained on the home page.
   updates.
 * Anything touching `localStorage` needs a `typeof window` guard or must run after hydration —
   the app is prerendered.
+* Grid squares use a single `onPointerDown`, never `onMouseDown` plus `onTouchStart`: a tap fires
+  both, and the second call looks like a click on the already-selected square, which flips the
+  direction.
 * Bump the `NS` constant in `storage.ts` if a saved-data shape changes incompatibly.
 * Add a line to `public/updates.txt` when you ship a user-visible change.
 * A puzzle's `user` field is the key its progress and stats are filed under — never the currently

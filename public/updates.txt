@@ -7,3 +7,9 @@
 2026-08-28T05:20:00Z - Five puzzles per size, per player
 2026-08-28T07:30:00Z - Lori's topics expanded: Instagram, travel, pharma, cards, yoga, Costco, dogs and more
 2026-08-28T07:30:00Z - Topics moved into the options menu, and this changelog added
+2026-08-28T18:05:00Z - Undo and redo, with Ctrl+Z and Ctrl+Shift+Z
+2026-08-28T18:05:00Z - Clear incorrect letters, leaving the right ones alone
+2026-08-28T18:05:00Z - Skip-filled-squares is now a setting you can turn off
+2026-08-28T18:05:00Z - Share a solve: time, badges and the grid's shape
+2026-08-28T18:05:00Z - An all-clues button on phones, showing what is already filled in
+2026-08-28T18:05:00Z - Fixed taps on a square flipping between across and down on phones
