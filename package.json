@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "gen:puzzles": "node scripts/generate-puzzles.mjs",
+    "gen:packs": "node scripts/generate-puzzles.mjs --packs",
     "reclue": "node scripts/generate-puzzles.mjs --reclue",
     "gen:icons": "node scripts/generate-icons.mjs"
   },

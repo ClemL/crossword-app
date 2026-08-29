@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getPuzzle } from "@/lib/puzzles";
 import { PlayScreen } from "@/components/PlayScreen";
+import { SHARED_USER } from "@/lib/types";
 import { getUser } from "@/lib/users";
 import { useUser } from "@/lib/useUser";
 
@@ -16,7 +17,7 @@ function PlayRoute() {
   // Progress and stats are filed under the puzzle's owner, so opening someone
   // else's link would quietly write into their history. Offer the switch
   // instead of doing it silently.
-  if (puzzle && hydrated && user && user.id !== puzzle.user) {
+  if (puzzle && hydrated && user && puzzle.user !== SHARED_USER && user.id !== puzzle.user) {
     const owner = getUser(puzzle.user);
     return (
       <main className="page page--narrow">

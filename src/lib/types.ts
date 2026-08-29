@@ -12,10 +12,15 @@ export interface Clue {
   cells: number[];
 }
 
+/** Pack puzzles belong to no one player; both see them. */
+export const SHARED_USER = "shared";
+
 export interface Puzzle {
   id: string;
-  /** Which player's bank this puzzle belongs to. */
+  /** Which player's bank this puzzle belongs to, or SHARED_USER for a pack. */
   user: string;
+  /** Set when the puzzle came from a themed pack. */
+  pack?: string;
   size: PuzzleSize;
   /** 1-based index within its size, used for display ("Mini #4"). */
   ordinal: number;

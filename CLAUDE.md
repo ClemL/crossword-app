@@ -32,6 +32,27 @@ A crossword app in the spirit of the NYT one, with three sizes:
 | Mini  | 5 x 5   | 90         | Daily      | Coffee break                |
 | Daily | 15 x 15 | 13         | Weekly     | A full grid                 |
 
+### Themed packs
+
+`/packs` holds five sets of eight 5x5s, each pulled toward a handful of subjects
+(`scripts/lib/packs.mjs`). They are shared by both players rather than belonging to a bank, so a
+pack puzzle carries `user: "shared"` and its progress files under whoever is playing — see
+`progressOwner` in `src/lib/puzzles.ts`. They are not in the daily schedule.
+
+Three things get a pack from the ~20% a themed 5x5 reaches by default to around 40%:
+
+* **Vocabulary at the right lengths.** Density tracks how many themed answers are three to five
+  letters, not the total. Greater Boston first came out at 14% off 217 answers because its subject
+  is full of long place names — only 86 of them fit a 5x5.
+* **Blockier grids.** Eight blocks rather than four: shorter entries interlock less. Measured at
+  18-20% against 27-30% on the same vocabulary.
+* **Best-of selection.** Seventy grids are filled per pack and the eight most themed are kept. This
+  is the single biggest lever, and it is cheap because a 5x5 fills in a couple of seconds.
+
+Pack vocabulary lives in `scripts/lib/themes-packs.mjs` as its own theme set, so adding to it never
+changes what the committed daily bank was generated from. `npm run gen:packs` regenerates just the
+packs (a few minutes) and leaves the daily bank and schedule alone.
+
 ### Which puzzle a date gets
 
 `src/data/schedule.json`, written by the generator, maps ninety days from an epoch onto puzzle ids,
@@ -122,6 +143,7 @@ npm run build        # next build + service-worker precache injection (run befor
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
 npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: ~25 min, needs network once)
+npm run gen:packs    # regenerate just the themed packs (~5 min), leaving the daily bank alone
 npm run reclue       # re-pick clues for the existing grids (fast) after a clue-rule change
 npm run gen:icons    # regenerate the PNG app icons
 ```

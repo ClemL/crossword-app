@@ -14,10 +14,12 @@ import { Toolbar } from "./Toolbar";
 import { useGame } from "@/lib/useGame";
 import { useSettings } from "@/lib/useSettings";
 import { nextForDay } from "@/lib/daily";
+import { progressOwner } from "@/lib/puzzles";
 import { EMPTY_PROGRESS, loadProgress, loadStats, type PuzzleProgress } from "@/lib/storage";
 import { useHydrated, useStorageVersion } from "@/lib/useStorage";
 import { SIZES, SIZE_LABEL, type Clue, type Puzzle } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { useUser } from "@/lib/useUser";
 
 /**
  * Waits for hydration before mounting the game, so the saved grid can seed the
@@ -26,7 +28,8 @@ import { getUser } from "@/lib/users";
  */
 export function PlayScreen({ puzzle }: { puzzle: Puzzle }) {
   const hydrated = useHydrated();
-  if (!hydrated) {
+  const { user } = useUser();
+  if (!hydrated || !user) {
     return (
       <main className={`play play--${puzzle.size}`}>
         <div className="play__body">
@@ -35,17 +38,32 @@ export function PlayScreen({ puzzle }: { puzzle: Puzzle }) {
       </main>
     );
   }
-  return <PlayGame puzzle={puzzle} saved={loadProgress(puzzle.user, puzzle.id) ?? EMPTY_PROGRESS} />;
+  const owner = progressOwner(puzzle, user.id);
+  return (
+    <PlayGame
+      puzzle={puzzle}
+      owner={owner}
+      saved={loadProgress(owner, puzzle.id) ?? EMPTY_PROGRESS}
+    />
+  );
 }
 
-function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) {
-  const game = useGame(puzzle, saved);
+function PlayGame({
+  puzzle,
+  owner,
+  saved,
+}: {
+  puzzle: Puzzle;
+  owner: string;
+  saved: PuzzleProgress;
+}) {
+  const game = useGame(puzzle, saved, owner);
   const { settings, update } = useSettings();
   const [showAllClues, setShowAllClues] = useState(false);
   const storageVersion = useStorageVersion();
   const bestMs = useMemo(
-    () => (storageVersion >= 0 ? (loadStats(puzzle.user).best[puzzle.id] ?? null) : null),
-    [puzzle.id, puzzle.user, storageVersion],
+    () => (storageVersion >= 0 ? (loadStats(owner).best[puzzle.id] ?? null) : null),
+    [puzzle.id, owner, storageVersion],
   );
 
   const { actions, entries, status } = game;
@@ -121,7 +139,7 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
 
   // Only offer a "next" when it is another of the same day's puzzles.
   const next = useMemo(
-    () => nextForDay(puzzle.user, puzzle, SIZES.map((s) => s.key)),
+    () => (puzzle.pack ? undefined : nextForDay(puzzle.user, puzzle, SIZES.map((s) => s.key))),
     [puzzle],
   );
   const title = `${SIZE_LABEL[puzzle.size]} #${puzzle.ordinal}`;
@@ -227,7 +245,7 @@ function PlayGame({ puzzle, saved }: { puzzle: Puzzle; saved: PuzzleProgress }) 
       {game.justSolved && (
         <CompleteDialog
           puzzle={puzzle}
-          playerName={getUser(puzzle.user)?.name ?? puzzle.user}
+          playerName={getUser(owner)?.name ?? owner}
           elapsedMs={game.elapsedMs}
           bestMs={bestMs}
           clean={!game.usedHelp}

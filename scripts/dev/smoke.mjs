@@ -253,6 +253,25 @@ check(
 await page.screenshot({ path: "/tmp/shot-changelog.png" });
 await page.mouse.click(5, 5);
 
+// --- themed packs ----------------------------------------------------------
+const packs = JSON.parse(await readFile("src/data/packs.json", "utf8"));
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.locator(".menu > .btn").click();
+await page.getByRole("link", { name: "Themed packs" }).click();
+await page.waitForSelector(".pack");
+const packCount = await page.locator(".pack").count();
+check("packs page lists every pack", packCount === packs.length, `${packCount} packs`);
+const packChips = await page.locator(".pack").first().locator(".chip").count();
+check("a pack offers its puzzles", packChips === packs[0].puzzles.length, `${packChips} puzzles`);
+await page.screenshot({ path: "/tmp/shot-packs.png", fullPage: true });
+
+// A pack puzzle is shared, so it must open for either player without the
+// "that one is someone else's" guard.
+await page.locator(".pack").first().locator(".chip").first().click();
+await page.waitForSelector(".grid", { timeout: 10000 });
+check("a shared pack puzzle opens without a player guard", true);
+await page.goto(BASE, { waitUntil: "networkidle" });
+
 // --- stats -----------------------------------------------------------------
 await page.goto(`${BASE}/stats`, { waitUntil: "networkidle" });
 const heading = await page.locator("h1").innerText();

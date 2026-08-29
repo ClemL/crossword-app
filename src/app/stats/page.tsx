@@ -42,7 +42,7 @@ export default function StatsPage() {
           </p>
         </div>
         <div className="hero__side">
-          <OptionsMenu showStatsLink={false} />
+          <OptionsMenu />
         </div>
       </header>
 

@@ -623,6 +623,7 @@ export const CURATED_LONG = {
   WOOL: ["Sheep's coat", "Sweater material", "Pull the ___ over"],
   WORD: ["Vocabulary unit", "Promise", "Have a ___"],
   WORE: ["Had on", "Eroded", "Sported"],
+  WROTE: ["Put on paper, back then", "Composed a letter", "Penned"],
   WORK: ["Job", "Function properly", "___ of art"],
   WORM: ["Early bird's catch", "Garden crawler", "Fishing bait"],
   WRAP: ["Gift covering", "Finish filming", "Tortilla sandwich"],
