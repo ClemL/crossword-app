@@ -19,3 +19,4 @@
 2026-08-28T22:40:00Z - Ninety days of puzzles laid out in advance, with earlier days still playable
 2026-08-29T00:30:00Z - Themed packs: five sets of 5x5s pulled hard toward a handful of subjects each
 2026-08-29T00:30:00Z - New subjects behind them: AI, Cambridge, Somerville, the MBTA and Beth Israel
+2026-08-29T02:10:00Z - The options menu slides in from the side on a phone instead of opening off the edge of the screen

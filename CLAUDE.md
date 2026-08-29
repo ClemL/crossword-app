@@ -121,6 +121,10 @@ public/            manifest, service worker template, icons
   `themes-lori.mjs` hold the longer answers, `themes-short.mjs` the three-to-five-letter ones for
   all three sets. Adding entries here is the single most effective way to raise how much of a grid
   comes out on-theme.
+* `src/components/Menu.tsx` — the one dropdown, used by the hamburger and by the play toolbar. It
+  becomes a sliding panel below 620px: the triggers sit against the right edge of the header, so a
+  dropdown there opens into the margin and clips. It keeps the panel mounted for the length of the
+  slide-out, which is why there is a `mounted` flag as well as a `shown` one.
 * `src/components/Modal.tsx` — one overlay-and-panel dialog, shared by the changelog and the topic
   list. It closes on a backdrop click only when the click target *is* the backdrop; without that
   check a click on the list inside it would close the dialog too.
