@@ -13,7 +13,7 @@ const THEME_ORDER = ["system", "light", "dark"] as const;
 const THEME_LABEL = { system: "Auto", light: "Light", dark: "Dark" };
 
 /** The one header control: player, theme, topics, changelog and stats. */
-export function OptionsMenu({ showStatsLink = true }: { showStatsLink?: boolean }) {
+export function OptionsMenu() {
   const { user, setUser } = useUser();
   const { settings, update } = useSettings();
   const [showTopics, setShowTopics] = useState(false);
@@ -36,15 +36,15 @@ export function OptionsMenu({ showStatsLink = true }: { showStatsLink?: boolean 
             >
               Puzzle topics
             </button>
-            {showStatsLink ? (
-              <Link href="/stats" onClick={close}>
-                Stats
-              </Link>
-            ) : (
-              <Link href="/" onClick={close}>
-                Puzzles
-              </Link>
-            )}
+            <Link href="/packs" onClick={close}>
+              Themed packs
+            </Link>
+            <Link href="/" onClick={close}>
+              Today&apos;s puzzles
+            </Link>
+            <Link href="/stats" onClick={close}>
+              Stats
+            </Link>
             <hr />
             <button type="button" onClick={() => update({ theme: nextTheme })}>
               Theme: {THEME_LABEL[settings.theme]}

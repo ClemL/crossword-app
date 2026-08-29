@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { buildLexicon, indexLexicon, tierCapForLength, topicsOf, TIER } from "./lib/lexicon.mjs";
 import { analyze, emptyPattern, makeRng, randomPattern } from "./lib/grid.mjs";
 import { pickSeeds, themedByLength } from "./lib/theme-seed.mjs";
+import { PACKS } from "./lib/packs.mjs";
 import { createFiller } from "./lib/fill.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,37 @@ const SEED = (() => {
 const OUT = path.join(HERE, "..", "src", "data", "puzzles.json");
 const TOPICS_OUT = path.join(HERE, "..", "src", "data", "topics.json");
 const SCHEDULE_OUT = path.join(HERE, "..", "src", "data", "schedule.json");
+const PACKS_OUT = path.join(HERE, "..", "src", "data", "packs.json");
+
+/**
+ * Themed packs: 5x5s pulled hard toward a handful of subjects. More blocks than
+ * the daily mini uses, because shorter entries interlock less and so leave more
+ * room for themed answers.
+ */
+const PACK_PLAN = {
+  size: "mini",
+  count: 8,
+  // Fill far more than we need and keep the most themed. A 5x5 fills in a
+  // couple of seconds, so this is cheap, and it lifts the average well above
+  // what any single attempt produces.
+  candidates: 70,
+  dim: 5,
+  // Blockier than the daily mini. Measured: at four blocks these come out
+  // 18-20% themed, at eight blocks 27-30%. Shorter entries interlock less, and
+  // the short answers are the ones a themed subject actually has.
+  blocks: [6, 8, 8],
+  maxRun: 5,
+  par: 240,
+  ladder: [
+    { maxTier: TIER.CURATED, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+    { maxTier: TIER.COMMON, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+    { maxTier: TIER.COMMON, seeds: 3, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+    { maxTier: TIER.COMMON, seeds: 2, picks: 50, fill: { timeBudgetMs: 3000, branch: 26 } },
+    { maxTier: TIER.FAMILIAR, seeds: 2, picks: 40, fill: { timeBudgetMs: 3000, branch: 26 } },
+    { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 1, picks: 30, fill: { timeBudgetMs: 3000, branch: 26 } },
+    { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 0, picks: 5, fill: { timeBudgetMs: 5000, branch: 24 } },
+  ],
+};
 
 /** How far ahead the date-to-puzzle schedule is laid out. */
 const SCHEDULE_DAYS = 90;
@@ -203,7 +235,9 @@ function buildSchedule(puzzles, rng) {
   for (const user of USERS) {
     players[user.id] = {};
     for (const plan of PLANS) {
-      const pool = puzzles.filter((p) => p.user === user.id && p.size === plan.size).map((p) => p.id);
+      const pool = puzzles
+        .filter((p) => p.user === user.id && p.size === plan.size && !p.pack)
+        .map((p) => p.id);
       if (pool.length === 0) continue;
 
       const every = plan.cadence === "weekly" ? 7 : 1;
@@ -232,6 +266,114 @@ function buildSchedule(puzzles, rng) {
   return { epoch: EPOCH, days: SCHEDULE_DAYS, cadence, players };
 }
 
+/** Generate every pack. Returns the puzzles plus the manifest the app reads. */
+async function buildPacks(seenGrids) {
+  const puzzles = [];
+  const manifest = [];
+
+  for (const pack of PACKS) {
+    const words = await buildLexicon({
+      maxTier: TIER.UNCOMMON,
+      themes: ["shared", "clem", "lori", "packs"],
+      onlyTopics: pack.topics,
+    });
+    const themedCount = words.filter((w) => w.tier === TIER.THEME).length;
+    const byLength = themedByLength(words);
+
+    const fillers = new Map();
+    const bankKey = (rung) => `${rung.maxTier}:${rung.relaxShort ? 1 : 0}`;
+    for (const rung of PACK_PLAN.ladder) {
+      if (fillers.has(bankKey(rung))) continue;
+      const allowed = words.filter(
+        (w) =>
+          w.tier <=
+          Math.min(rung.maxTier, tierCapForLength(w.word.length) + (rung.relaxShort ? 1 : 0)),
+      );
+      fillers.set(bankKey(rung), createFiller(indexLexicon(allowed)));
+    }
+
+    const rng = makeRng(SEED + pack.id.charCodeAt(0) * 7919 + pack.id.length * 104729);
+    const candidates = [];
+    let attempts = 0;
+
+    while (candidates.length < PACK_PLAN.candidates && attempts < PACK_PLAN.candidates * 25) {
+      attempts++;
+      const blockCount = PACK_PLAN.blocks[Math.floor(rng() * PACK_PLAN.blocks.length)];
+      const blocks = randomPattern(PACK_PLAN.dim, {
+        blocks: blockCount,
+        maxRun: PACK_PLAN.maxRun,
+        rng,
+        tries: 900,
+      });
+      if (!blocks) continue;
+
+      const { slots } = analyze(blocks, PACK_PLAN.dim);
+      let result = null;
+      for (const rung of PACK_PLAN.ladder) {
+        const filler = fillers.get(bankKey(rung));
+        for (let pick = 0; pick < rung.picks && !result; pick++) {
+          const seeds = rung.seeds > 0 ? pickSeeds(slots, byLength, rung.seeds, rng) : [];
+          result = filler.fill(slots, PACK_PLAN.dim * PACK_PLAN.dim, {
+            ...rung.fill,
+            seeds,
+            seed: Math.floor(rng() * 1e9),
+          });
+        }
+        if (result) break;
+      }
+      if (!result) continue;
+
+      const key = result.letters.join("");
+      if (seenGrids.has(key)) continue;
+      seenGrids.add(key);
+
+      const themed = result.entries.filter((e) => e.tier === TIER.THEME).length;
+      candidates.push({
+        blocks,
+        slots,
+        result,
+        share: themed / slots.length,
+      });
+    }
+
+    candidates.sort((a, b) => b.share - a.share);
+    const chosen = candidates.slice(0, PACK_PLAN.count);
+    const ids = [];
+    const density = [];
+
+    chosen.forEach((candidate, index) => {
+      const puzzle = toPuzzle({
+        user: "shared",
+        size: PACK_PLAN.size,
+        ordinal: index + 1,
+        dim: PACK_PLAN.dim,
+        blocks: candidate.blocks,
+        slots: candidate.slots,
+        result: candidate.result,
+        par: PACK_PLAN.par,
+        rng,
+      });
+      puzzle.id = `pack-${pack.id}-${String(index + 1).padStart(3, "0")}`;
+      puzzle.pack = pack.id;
+      puzzles.push(puzzle);
+      ids.push(puzzle.id);
+      density.push(Math.round(candidate.share * 100));
+    });
+
+    const made = chosen.length;
+    const mean = density.length
+      ? Math.round(density.reduce((a, b) => a + b, 0) / density.length)
+      : 0;
+    process.stderr.write(
+      `  pack ${pack.id}: ${made}/${PACK_PLAN.count} kept from ${candidates.length} candidates, ` +
+        `${themedCount} themed answers, ${mean}% themed (${density.join(",")})\n`,
+    );
+    manifest.push({ ...pack, puzzles: ids, themedAnswers: themedCount, themedPercent: mean });
+  }
+
+  return { puzzles, manifest };
+}
+
 async function main() {
   const started = Date.now();
   const reclueOnly = process.argv.includes("--reclue");
@@ -248,6 +390,24 @@ async function main() {
 
   if (reclueOnly) {
     await reclue(banks);
+    return;
+  }
+
+  // Packs alone: the daily bank and its schedule take over an hour to rebuild
+  // and are not affected by pack vocabulary, so leave them where they are.
+  if (process.argv.includes("--packs")) {
+    const existing = JSON.parse(await readFile(OUT, "utf8"));
+    const kept = existing.filter((p) => !p.pack);
+    const seen = new Set(
+      kept.map((p) => p.solution.filter((c) => c !== "#").join("")),
+    );
+    const { puzzles: packPuzzles, manifest } = await buildPacks(seen);
+    await writeFile(OUT, JSON.stringify([...kept, ...packPuzzles]), "utf8");
+    await writeFile(PACKS_OUT, JSON.stringify(manifest), "utf8");
+    process.stderr.write(
+      `wrote ${packPuzzles.length} pack puzzles across ${manifest.length} packs ` +
+        `(bank now ${kept.length + packPuzzles.length})\n`,
+    );
     return;
   }
 
@@ -347,6 +507,10 @@ async function main() {
     JSON.stringify(Object.fromEntries(USERS.map((u) => [u.id, topicsOf(u.themes)])), null, 2),
     "utf8",
   );
+  const { puzzles: packPuzzles, manifest } = await buildPacks(seenGrids);
+  puzzles.push(...packPuzzles);
+  await writeFile(PACKS_OUT, JSON.stringify(manifest), "utf8");
+
   const schedule = buildSchedule(puzzles, makeRng(SEED + 31337));
   await writeFile(SCHEDULE_OUT, JSON.stringify(schedule), "utf8");
   process.stderr.write(`scheduled ${SCHEDULE_DAYS} days from ${EPOCH}\n`);

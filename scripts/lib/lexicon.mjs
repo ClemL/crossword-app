@@ -7,6 +7,13 @@ import { SHARED_THEMES } from "./themes-shared.mjs";
 import { CLEM_THEMES } from "./themes-clem.mjs";
 import { LORI_THEMES } from "./themes-lori.mjs";
 import { SHARED_SHORT, CLEM_SHORT, LORI_SHORT } from "./themes-short.mjs";
+import {
+  PACK_THEMES,
+  PACK_SHORT,
+  PACK_EXTRA,
+  PACK_DEPTH,
+  PACK_BOSTON_SHORT,
+} from "./themes-packs.mjs";
 import { cleanClue } from "./clean-clue.mjs";
 import { CURATED } from "./curated-clues.mjs";
 import { CURATED_LONG } from "./curated-clues-long.mjs";
@@ -82,6 +89,9 @@ export const THEME_SETS = {
   shared: mergeTopics(SHARED_THEMES, SHARED_SHORT),
   clem: mergeTopics(CLEM_THEMES, CLEM_SHORT),
   lori: mergeTopics(LORI_THEMES, LORI_SHORT),
+  // Pack vocabulary is its own set rather than part of `shared`, so adding to
+  // it never changes what the committed daily bank was generated from.
+  packs: mergeTopics(PACK_THEMES, PACK_SHORT, PACK_EXTRA, PACK_DEPTH, PACK_BOSTON_SHORT),
 };
 
 /** Topic names in a theme set, for showing the player what their puzzles cover. */
@@ -103,9 +113,13 @@ function tierForRank(rank) {
 /**
  * @param {object} options
  * @param {number} [options.maxTier] ceiling for dictionary fill
- * @param {string[]} [options.themes] which theme sets to fold in ("shared", "clem")
+ * @param {string[]} [options.themes] which theme sets to fold in
+ * @param {string[]} [options.onlyTopics] when given, only these topics count as
+ *   themed — this is what makes a pack lean on its own subjects rather than
+ *   every subject in the bank.
  */
-export async function buildLexicon({ maxTier = TIER.OBSCURE, themes = [] } = {}) {
+export async function buildLexicon({ maxTier = TIER.OBSCURE, themes = [], onlyTopics } = {}) {
+  const wanted = onlyTopics ? new Set(onlyTopics) : null;
   const webster = await loadWebster();
   const commonRank = await loadCommon();
 
@@ -187,6 +201,7 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE, themes = [] } = {})
     const set = THEME_SETS[name];
     if (!set) throw new Error(`unknown theme set: ${name}`);
     for (const [topic, items] of Object.entries(set)) {
+      if (wanted && !wanted.has(topic)) continue;
       for (const [word, clue] of items) {
         if (!/^[A-Z]{3,15}$/.test(word)) throw new Error(`bad themed answer: ${word}`);
         const existing = entries.get(word);

@@ -53,7 +53,7 @@ function unpackFlags(text: string, length: number): boolean[] {
  * action. `saved` is the persisted state read by the caller before mounting, so
  * the hook can seed itself directly instead of reading storage in an effect.
  */
-export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
+export function useGame(puzzle: Puzzle, saved: PuzzleProgress, owner: string) {
   const size = puzzle.solution.length;
   const cellClues = useMemo(() => buildCellClueMap(puzzle), [puzzle]);
   const across = useMemo(() => cluesFor(puzzle, "across"), [puzzle]);
@@ -111,7 +111,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
   // --- persistence ---------------------------------------------------------
   const persist = useCallback(
     (patch: Partial<PuzzleProgress> = {}) => {
-      saveProgress(puzzle.user, puzzle.id, {
+      saveProgress(owner, puzzle.id, {
         letters: packLetters(entries),
         pencil: packFlags(pencil),
         revealed: packFlags(revealed),
@@ -125,7 +125,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         ...patch,
       });
     },
-    [puzzle.id, puzzle.user, entries, pencil, revealed, elapsedMs, autocheck],
+    [puzzle.id, owner, entries, pencil, revealed, elapsedMs, autocheck],
   );
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
       setStatus("solved");
       setJustSolved(true);
       const clean = meta.current.checkCount === 0 && meta.current.revealCount === 0;
-      recordSolve(puzzle.user, {
+      recordSolve(owner, {
         puzzleId: puzzle.id,
         size: puzzle.size,
         ms: elapsedMs,
@@ -179,7 +179,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         checks: meta.current.checkCount,
         reveals: meta.current.revealCount,
       });
-      saveProgress(puzzle.user, puzzle.id, {
+      saveProgress(owner, puzzle.id, {
         letters: packLetters(finalEntries),
         pencil: packFlags(pencil),
         revealed: packFlags(revealed),
@@ -192,7 +192,7 @@ export function useGame(puzzle: Puzzle, saved: PuzzleProgress) {
         autocheck,
       });
     },
-    [puzzle, elapsedMs, pencil, revealed, autocheck],
+    [puzzle, owner, elapsedMs, pencil, revealed, autocheck],
   );
 
   // --- actions -------------------------------------------------------------

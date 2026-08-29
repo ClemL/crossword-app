@@ -18,6 +18,8 @@ everything lives on your device.
 * **Changelog** in the footer: the newest line is always visible, and clicking it opens the lot.
 * **A puzzle of the day.** A new micro and mini every day, and a fresh 15x15 each week, ninety days
   of them laid out per player. Which puzzle a date gets is fixed and offline — no server decides it.
+* **Themed packs.** Five sets of eight 5x5s under **Themed packs** in the options menu, each pulled
+  toward a handful of subjects — around 40% of their answers come from the pack's own world.
 * **Three grid sizes**, each with its own par time and stats.
 * **Timer** that pauses when you switch tabs, so a puzzle left open overnight does not report a
   twelve-hour solve.

@@ -17,3 +17,5 @@
 2026-08-28T21:15:00Z - A progress bar under the toolbar showing how much of the grid is filled
 2026-08-28T22:40:00Z - A puzzle of the day: a new micro and mini daily, a new 15x15 each week
 2026-08-28T22:40:00Z - Ninety days of puzzles laid out in advance, with earlier days still playable
+2026-08-29T00:30:00Z - Themed packs: five sets of 5x5s pulled hard toward a handful of subjects each
+2026-08-29T00:30:00Z - New subjects behind them: AI, Cambridge, Somerville, the MBTA and Beth Israel
