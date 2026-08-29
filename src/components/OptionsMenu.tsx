@@ -24,7 +24,7 @@ export function OptionsMenu() {
 
   return (
     <>
-      <Menu label="☰">
+      <Menu label="☰" title="Options">
         {(close) => (
           <>
             <button

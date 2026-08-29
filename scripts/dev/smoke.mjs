@@ -345,6 +345,56 @@ check("tapping a clue closes the panel", (await mp.locator(".allclues").count())
 await mp.goto(BASE, { waitUntil: "networkidle" });
 await mp.screenshot({ path: "/tmp/shot-mobile-home.png", fullPage: true });
 
+// --- the options sheet on a phone ------------------------------------------
+// A right-aligned dropdown opens into the margin at this width; the sheet has
+// to sit entirely on screen instead. Measure it only once it has finished
+// sliding, or the box read back is wherever the transition happened to be.
+const sheetSettled = () =>
+  mp.locator(".menu__panel").evaluate(
+    (el) =>
+      new Promise((resolve) => {
+        const done = () => resolve();
+        el.addEventListener("transitionend", done, { once: true });
+        setTimeout(done, 500);
+      }),
+  );
+
+await mp.locator(".menu > .btn").tap();
+await mp.waitForSelector(".menu__panel.is-open");
+await sheetSettled();
+const sheet = await mp.locator(".menu__panel").boundingBox();
+check(
+  "the options sheet is fully on screen",
+  sheet.x >= 0 && sheet.x + sheet.width <= 390.5 && sheet.width > 200,
+  `x ${Math.round(sheet.x)} w ${Math.round(sheet.width)}`,
+);
+check(
+  "the sheet is full height",
+  sheet.height >= 800,
+  `${Math.round(sheet.height)}px tall`,
+);
+await mp.screenshot({ path: "/tmp/shot-mobile-menu.png" });
+await mp.locator(".menu__scrim").tap({ position: { x: 20, y: 400 } });
+await mp.waitForSelector(".menu__panel", { state: "detached" });
+check("tapping the scrim closes the sheet", (await mp.locator(".menu__panel").count()) === 0);
+
+// The toolbar's own menu sits at the same edge and gets the same treatment.
+await mp.goto(`${BASE}/play?id=${daily.id}`, { waitUntil: "networkidle" });
+await mp.waitForSelector(".grid");
+await mp.locator(".toolbar__narrow .menu > .btn").tap();
+await mp.waitForSelector(".menu__panel.is-open");
+await sheetSettled();
+const actions = await mp.locator(".menu__panel").boundingBox();
+check(
+  "the toolbar sheet is fully on screen",
+  actions.x >= 0 && actions.x + actions.width <= 390.5,
+  `x ${Math.round(actions.x)} w ${Math.round(actions.width)}`,
+);
+await mp.screenshot({ path: "/tmp/shot-mobile-actions.png" });
+await mp.locator(".menu__close").tap();
+await mp.waitForSelector(".menu__panel", { state: "detached" });
+check("the sheet's close button dismisses it", (await mp.locator(".menu__panel").count()) === 0);
+
 console.log(problems.length ? `\nPROBLEMS:\n${problems.join("\n")}` : "\nall checks passed");
 await browser.close();
 server.close();

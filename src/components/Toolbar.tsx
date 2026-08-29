@@ -156,7 +156,7 @@ export function Toolbar({
         </div>
 
         <div className="toolbar__narrow">
-          <Menu label="⋯">
+          <Menu label="⋯" title="Puzzle actions">
             {(close) => (
               <>
                 {checkItems(close)}
