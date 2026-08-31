@@ -348,6 +348,23 @@ button {
 .pack__puzzles { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .pack__meta { font-size: 0.78rem; color: var(--ink-soft); }
 
+/* One row per grid size within a pack. */
+.pack__row { display: flex; flex-direction: column; gap: 0.4rem; }
+.pack__row + .pack__row { padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.pack__row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.pack__row-size {
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* ------------------------------------------------------- today + earlier -- */
 .today {
   display: flex;
