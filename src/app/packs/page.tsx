@@ -38,7 +38,7 @@ export default function PacksPage() {
         <div>
           <h1 className="hero__title">Themed packs</h1>
           <p className="hero__sub">
-            Sets of 5x5s pulled toward a handful of subjects each. Shared between both players —
+            Sets of micro-sized 5x5s pulled toward a handful of subjects each. Shared between both players —
             your progress on them is saved under whoever is playing.
           </p>
         </div>

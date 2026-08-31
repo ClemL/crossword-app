@@ -39,11 +39,11 @@ const PACKS_OUT = path.join(HERE, "..", "src", "data", "packs.json");
 
 /**
  * Themed packs: 5x5s pulled hard toward a handful of subjects. More blocks than
- * the daily mini uses, because shorter entries interlock less and so leave more
+ * the daily micro uses, because shorter entries interlock less and so leave more
  * room for themed answers.
  */
 const PACK_PLAN = {
-  size: "mini",
+  size: "micro",
   count: 8,
   // Fill far more than we need and keep the most themed. A 5x5 fills in a
   // couple of seconds, so this is cheap, and it lifts the average well above
@@ -84,7 +84,7 @@ const USERS = [
 // is how many themed answers are pinned before the search starts.
 const PLANS = [
   {
-    size: "micro",
+    size: "nano",
     // A 3x3 fills in milliseconds, so every day gets its own.
     count: SCHEDULE_DAYS,
     cadence: "daily",
@@ -100,7 +100,7 @@ const PLANS = [
     ],
   },
   {
-    size: "mini",
+    size: "micro",
     // ~4.5s each: ninety a player is a quarter of an hour, which is fine.
     count: SCHEDULE_DAYS,
     cadence: "daily",
@@ -120,6 +120,33 @@ const PLANS = [
     ],
   },
   {
+    size: "mini",
+    // ~8s each. A 7x7 is the first size where the grid needs blocks to close at
+    // all: a blockless one is a 7x7 double word square, which the solver never
+    // finds. Eight blocks is where it fills reliably and stays most themed --
+    // measured 35-44% on theme at eight, against 25-36% at ten.
+    count: SCHEDULE_DAYS,
+    cadence: "daily",
+    dim: 7,
+    blocks: [8],
+    maxRun: 7,
+    // Reject the odd pattern that carves the grid into a handful of long
+    // entries: a 14-slot 7x7 is nearly all sevens crossing sevens, and it eats
+    // minutes before failing. A 22-slot one fills in seconds.
+    minSlots: 20,
+    par: 420,
+    // Unlike the smaller sizes, pinning themed answers up front hurts here:
+    // with two seeds the grid closed once in five, with none three times in
+    // five -- and no less themed, since the filler reaches for themed answers
+    // on its own. Only the first rung seeds at all.
+    ladder: [
+      { maxTier: TIER.COMMON, seeds: 1, picks: 12, fill: { timeBudgetMs: 2000, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 0, picks: 10, fill: { timeBudgetMs: 2500, branch: 26 } },
+      { maxTier: TIER.FAMILIAR, relaxShort: true, seeds: 0, picks: 6, fill: { timeBudgetMs: 3000, branch: 24 } },
+      { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 0, picks: 6, fill: { timeBudgetMs: 4000, branch: 24 } },
+    ],
+  },
+  {
     size: "daily",
     // ~104s each. Ninety a player would be five hours of solving, so the big
     // grid turns over weekly instead -- which is also how anyone actually plays
@@ -130,7 +157,7 @@ const PLANS = [
     blocks: [54, 56, 58],
     maxRun: 7,
     par: 1500,
-    // A 15x15 has many more short entries to fill than a mini, so the
+    // A 15x15 has many more short entries to fill than a micro, so the
     // short-answer rule is loosened by one tier throughout; without it the
     // grids rarely close at all.
     ladder: [
@@ -450,6 +477,7 @@ async function main() {
         if (!blocks) continue;
 
         const { slots } = analyze(blocks, plan.dim);
+        if (plan.minSlots && slots.length < plan.minSlots) continue;
 
         let result = null;
         for (const rung of plan.ladder) {

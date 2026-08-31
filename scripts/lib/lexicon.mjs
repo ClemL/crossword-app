@@ -7,6 +7,7 @@ import { SHARED_THEMES } from "./themes-shared.mjs";
 import { CLEM_THEMES } from "./themes-clem.mjs";
 import { LORI_THEMES } from "./themes-lori.mjs";
 import { SHARED_SHORT, CLEM_SHORT, LORI_SHORT } from "./themes-short.mjs";
+import { SHARED_EXTRA, CLEM_EXTRA, LORI_EXTRA } from "./themes-extra.mjs";
 import {
   PACK_THEMES,
   PACK_SHORT,
@@ -86,9 +87,9 @@ function mergeTopics(...sets) {
 }
 
 export const THEME_SETS = {
-  shared: mergeTopics(SHARED_THEMES, SHARED_SHORT),
-  clem: mergeTopics(CLEM_THEMES, CLEM_SHORT),
-  lori: mergeTopics(LORI_THEMES, LORI_SHORT),
+  shared: mergeTopics(SHARED_THEMES, SHARED_SHORT, SHARED_EXTRA),
+  clem: mergeTopics(CLEM_THEMES, CLEM_SHORT, CLEM_EXTRA),
+  lori: mergeTopics(LORI_THEMES, LORI_SHORT, LORI_EXTRA),
   // Pack vocabulary is its own set rather than part of `shared`, so adding to
   // it never changes what the committed daily bank was generated from.
   packs: mergeTopics(PACK_THEMES, PACK_SHORT, PACK_EXTRA, PACK_DEPTH, PACK_BOSTON_SHORT),

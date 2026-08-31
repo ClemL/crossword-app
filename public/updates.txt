@@ -20,3 +20,8 @@
 2026-08-29T00:30:00Z - Themed packs: five sets of 5x5s pulled hard toward a handful of subjects each
 2026-08-29T00:30:00Z - New subjects behind them: AI, Cambridge, Somerville, the MBTA and Beth Israel
 2026-08-29T02:10:00Z - The options menu slides in from the side on a phone instead of opening off the edge of the screen
+2026-08-30T18:00:00Z - Four sizes now: a 3x3 nano, a 5x5 micro, a brand-new 7x7 mini and the 15x15 daily
+2026-08-30T18:00:00Z - New subjects for both players: skiing, skiing in New England, Greek myth, Hades and Pokemon
+2026-08-30T18:00:00Z - Hundreds more themed answers at the short lengths, so more of every grid is on topic
+2026-08-30T18:00:00Z - A sixth themed pack, Myths & Monsters
+2026-08-30T18:00:00Z - Saved progress and stats start over: what "micro" and "mini" mean changed underneath them
