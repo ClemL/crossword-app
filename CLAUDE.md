@@ -41,7 +41,7 @@ fills in under a second.
 
 ### Themed packs
 
-`/packs` holds six sets of eight 5x5s, each pulled toward a handful of subjects
+`/packs` holds six sets of eight 5x5s and eight 7x7s, each pulled toward a handful of subjects
 (`scripts/lib/packs.mjs`). They are shared by both players rather than belonging to a bank, so a
 pack puzzle carries `user: "shared"` and its progress files under whoever is playing — see
 `progressOwner` in `src/lib/puzzles.ts`. They are not in the daily schedule.

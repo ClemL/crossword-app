@@ -73,17 +73,21 @@ for (const [user, sizes] of Object.entries(schedule.players)) {
 }
 
 for (const pack of packs) {
-  for (const id of pack.puzzles) {
-    const puzzle = byId.get(id);
-    if (!puzzle) fail(`pack ${pack.id}: missing ${id}`);
-    else if (puzzle.pack !== pack.id) fail(`pack ${pack.id}: ${id} says pack ${puzzle.pack}`);
-    else if (puzzle.user !== "shared") fail(`pack ${pack.id}: ${id} belongs to ${puzzle.user}`);
+  if (!pack.sets?.length) fail(`pack ${pack.id}: no sets`);
+  for (const set of pack.sets ?? []) {
+    for (const id of set.puzzles) {
+      const puzzle = byId.get(id);
+      if (!puzzle) fail(`pack ${pack.id}: missing ${id}`);
+      else if (puzzle.pack !== pack.id) fail(`pack ${pack.id}: ${id} says pack ${puzzle.pack}`);
+      else if (puzzle.user !== "shared") fail(`pack ${pack.id}: ${id} belongs to ${puzzle.user}`);
+      else if (puzzle.size !== set.size) fail(`pack ${pack.id}: ${id} is a ${puzzle.size} in the ${set.size} set`);
+    }
   }
 }
 
 const counts = {};
 for (const puzzle of puzzles) {
-  const key = puzzle.pack ? "pack" : `${puzzle.user} ${puzzle.size}`;
+  const key = puzzle.pack ? `pack ${puzzle.size}` : `${puzzle.user} ${puzzle.size}`;
   counts[key] = (counts[key] ?? 0) + 1;
 }
 for (const [key, n] of Object.entries(counts).sort()) process.stdout.write(`  ${key.padEnd(14)} ${n}\n`);

@@ -277,8 +277,13 @@ await page.getByRole("link", { name: "Themed packs" }).click();
 await page.waitForSelector(".pack");
 const packCount = await page.locator(".pack").count();
 check("packs page lists every pack", packCount === packs.length, `${packCount} packs`);
+const packRows = await page.locator(".pack").first().locator(".pack__row").count();
+check("a pack offers a row per size", packRows === packs[0].sets.length, `${packRows} rows`);
 const packChips = await page.locator(".pack").first().locator(".chip").count();
-check("a pack offers its puzzles", packChips === packs[0].puzzles.length, `${packChips} puzzles`);
+const packTotal = packs[0].sets.reduce((n, s) => n + s.puzzles.length, 0);
+check("a pack offers its puzzles", packChips === packTotal, `${packChips} of ${packTotal}`);
+const packSizes = await page.locator(".pack").first().locator(".pack__row-size").allInnerTexts();
+check("pack rows are labelled by grid size", packSizes.join(" | ") === "5 x 5 | 7 x 7", packSizes.join(" | "));
 await page.screenshot({ path: "/tmp/shot-packs.png", fullPage: true });
 
 // A pack puzzle is shared, so it must open for either player without the

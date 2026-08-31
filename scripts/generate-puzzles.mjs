@@ -38,34 +38,56 @@ const SCHEDULE_OUT = path.join(HERE, "..", "src", "data", "schedule.json");
 const PACKS_OUT = path.join(HERE, "..", "src", "data", "packs.json");
 
 /**
- * Themed packs: 5x5s pulled hard toward a handful of subjects. More blocks than
- * the daily micro uses, because shorter entries interlock less and so leave more
- * room for themed answers.
+ * Themed packs: grids pulled hard toward a handful of subjects, at two sizes.
+ * More blocks than the daily bank uses at the same dimension, because shorter
+ * entries interlock less and so leave more room for themed answers.
+ *
+ * Both plans fill far more grids than they need and keep the most themed. A
+ * pack 5x5 fills in a couple of seconds and a 7x7 in well under one, so this is
+ * cheap, and it lifts the average well above what any single attempt produces.
  */
-const PACK_PLAN = {
-  size: "micro",
-  count: 8,
-  // Fill far more than we need and keep the most themed. A 5x5 fills in a
-  // couple of seconds, so this is cheap, and it lifts the average well above
-  // what any single attempt produces.
-  candidates: 70,
-  dim: 5,
-  // Blockier than the daily mini. Measured: at four blocks these come out
-  // 18-20% themed, at eight blocks 27-30%. Shorter entries interlock less, and
-  // the short answers are the ones a themed subject actually has.
-  blocks: [6, 8, 8],
-  maxRun: 5,
-  par: 240,
-  ladder: [
-    { maxTier: TIER.CURATED, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
-    { maxTier: TIER.COMMON, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
-    { maxTier: TIER.COMMON, seeds: 3, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
-    { maxTier: TIER.COMMON, seeds: 2, picks: 50, fill: { timeBudgetMs: 3000, branch: 26 } },
-    { maxTier: TIER.FAMILIAR, seeds: 2, picks: 40, fill: { timeBudgetMs: 3000, branch: 26 } },
-    { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 1, picks: 30, fill: { timeBudgetMs: 3000, branch: 26 } },
-    { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 0, picks: 5, fill: { timeBudgetMs: 5000, branch: 24 } },
-  ],
-};
+const PACK_PLANS = [
+  {
+    size: "micro",
+    count: 8,
+    candidates: 70,
+    dim: 5,
+    // Blockier than the daily micro. Measured: at four blocks these come out
+    // 18-20% themed, at eight blocks 27-30%. Shorter entries interlock less, and
+    // the short answers are the ones a themed subject actually has.
+    blocks: [6, 8, 8],
+    maxRun: 5,
+    par: 240,
+    ladder: [
+      { maxTier: TIER.CURATED, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 4, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 3, picks: 60, fill: { timeBudgetMs: 2500, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 2, picks: 50, fill: { timeBudgetMs: 3000, branch: 26 } },
+      { maxTier: TIER.FAMILIAR, seeds: 2, picks: 40, fill: { timeBudgetMs: 3000, branch: 26 } },
+      { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 1, picks: 30, fill: { timeBudgetMs: 3000, branch: 26 } },
+      { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 0, picks: 5, fill: { timeBudgetMs: 5000, branch: 24 } },
+    ],
+  },
+  {
+    size: "mini",
+    count: 8,
+    candidates: 70,
+    dim: 7,
+    // Same minSlots guard as the daily 7x7: a pattern that leaves a handful of
+    // long entries crossing each other costs minutes and fails.
+    blocks: [8, 10],
+    minSlots: 20,
+    maxRun: 7,
+    par: 420,
+    ladder: [
+      { maxTier: TIER.CURATED, seeds: 1, picks: 8, fill: { timeBudgetMs: 2000, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 1, picks: 10, fill: { timeBudgetMs: 2000, branch: 26 } },
+      { maxTier: TIER.COMMON, seeds: 0, picks: 12, fill: { timeBudgetMs: 2500, branch: 26 } },
+      { maxTier: TIER.FAMILIAR, relaxShort: true, seeds: 0, picks: 6, fill: { timeBudgetMs: 3000, branch: 24 } },
+      { maxTier: TIER.UNCOMMON, relaxShort: true, seeds: 0, picks: 6, fill: { timeBudgetMs: 4000, branch: 24 } },
+    ],
+  },
+];
 
 /** How far ahead the date-to-puzzle schedule is laid out. */
 const SCHEDULE_DAYS = 90;
@@ -307,95 +329,103 @@ async function buildPacks(seenGrids) {
     const themedCount = words.filter((w) => w.tier === TIER.THEME).length;
     const byLength = themedByLength(words);
 
+    // One filler per distinct bank shape used anywhere in either plan's ladder.
     const fillers = new Map();
     const bankKey = (rung) => `${rung.maxTier}:${rung.relaxShort ? 1 : 0}`;
-    for (const rung of PACK_PLAN.ladder) {
-      if (fillers.has(bankKey(rung))) continue;
-      const allowed = words.filter(
-        (w) =>
-          w.tier <=
-          Math.min(rung.maxTier, tierCapForLength(w.word.length) + (rung.relaxShort ? 1 : 0)),
-      );
-      fillers.set(bankKey(rung), createFiller(indexLexicon(allowed)));
-    }
-
-    const rng = makeRng(SEED + pack.id.charCodeAt(0) * 7919 + pack.id.length * 104729);
-    const candidates = [];
-    let attempts = 0;
-
-    while (candidates.length < PACK_PLAN.candidates && attempts < PACK_PLAN.candidates * 25) {
-      attempts++;
-      const blockCount = PACK_PLAN.blocks[Math.floor(rng() * PACK_PLAN.blocks.length)];
-      const blocks = randomPattern(PACK_PLAN.dim, {
-        blocks: blockCount,
-        maxRun: PACK_PLAN.maxRun,
-        rng,
-        tries: 900,
-      });
-      if (!blocks) continue;
-
-      const { slots } = analyze(blocks, PACK_PLAN.dim);
-      let result = null;
-      for (const rung of PACK_PLAN.ladder) {
-        const filler = fillers.get(bankKey(rung));
-        for (let pick = 0; pick < rung.picks && !result; pick++) {
-          const seeds = rung.seeds > 0 ? pickSeeds(slots, byLength, rung.seeds, rng) : [];
-          result = filler.fill(slots, PACK_PLAN.dim * PACK_PLAN.dim, {
-            ...rung.fill,
-            seeds,
-            seed: Math.floor(rng() * 1e9),
-          });
-        }
-        if (result) break;
+    for (const plan of PACK_PLANS) {
+      for (const rung of plan.ladder) {
+        if (fillers.has(bankKey(rung))) continue;
+        const allowed = words.filter(
+          (w) =>
+            w.tier <=
+            Math.min(rung.maxTier, tierCapForLength(w.word.length) + (rung.relaxShort ? 1 : 0)),
+        );
+        fillers.set(bankKey(rung), createFiller(indexLexicon(allowed)));
       }
-      if (!result) continue;
-
-      const key = result.letters.join("");
-      if (seenGrids.has(key)) continue;
-      seenGrids.add(key);
-
-      const themed = result.entries.filter((e) => e.tier === TIER.THEME).length;
-      candidates.push({
-        blocks,
-        slots,
-        result,
-        share: themed / slots.length,
-      });
     }
 
-    candidates.sort((a, b) => b.share - a.share);
-    const chosen = candidates.slice(0, PACK_PLAN.count);
-    const ids = [];
-    const density = [];
+    const sets = [];
 
-    chosen.forEach((candidate, index) => {
-      const puzzle = toPuzzle({
-        user: "shared",
-        size: PACK_PLAN.size,
-        ordinal: index + 1,
-        dim: PACK_PLAN.dim,
-        blocks: candidate.blocks,
-        slots: candidate.slots,
-        result: candidate.result,
-        par: PACK_PLAN.par,
-        rng,
+    for (const plan of PACK_PLANS) {
+      const rng = makeRng(
+        SEED + pack.id.charCodeAt(0) * 7919 + pack.id.length * 104729 + plan.dim * 65537,
+      );
+      const candidates = [];
+      let attempts = 0;
+
+      while (candidates.length < plan.candidates && attempts < plan.candidates * 25) {
+        attempts++;
+        const blockCount = plan.blocks[Math.floor(rng() * plan.blocks.length)];
+        const blocks = randomPattern(plan.dim, {
+          blocks: blockCount,
+          maxRun: plan.maxRun,
+          rng,
+          tries: 900,
+        });
+        if (!blocks) continue;
+
+        const { slots } = analyze(blocks, plan.dim);
+        if (plan.minSlots && slots.length < plan.minSlots) continue;
+
+        let result = null;
+        for (const rung of plan.ladder) {
+          const filler = fillers.get(bankKey(rung));
+          for (let pick = 0; pick < rung.picks && !result; pick++) {
+            const seeds = rung.seeds > 0 ? pickSeeds(slots, byLength, rung.seeds, rng) : [];
+            result = filler.fill(slots, plan.dim * plan.dim, {
+              ...rung.fill,
+              seeds,
+              seed: Math.floor(rng() * 1e9),
+            });
+          }
+          if (result) break;
+        }
+        if (!result) continue;
+
+        const key = result.letters.join("");
+        if (seenGrids.has(key)) continue;
+        seenGrids.add(key);
+
+        const themed = result.entries.filter((e) => e.tier === TIER.THEME).length;
+        candidates.push({ blocks, slots, result, share: themed / slots.length });
+      }
+
+      candidates.sort((a, b) => b.share - a.share);
+      const chosen = candidates.slice(0, plan.count);
+      const ids = [];
+      const density = [];
+
+      chosen.forEach((candidate, index) => {
+        const puzzle = toPuzzle({
+          user: "shared",
+          size: plan.size,
+          ordinal: index + 1,
+          dim: plan.dim,
+          blocks: candidate.blocks,
+          slots: candidate.slots,
+          result: candidate.result,
+          par: plan.par,
+          rng,
+        });
+        puzzle.id = `pack-${pack.id}-${plan.size}-${String(index + 1).padStart(3, "0")}`;
+        puzzle.pack = pack.id;
+        puzzles.push(puzzle);
+        ids.push(puzzle.id);
+        density.push(Math.round(candidate.share * 100));
       });
-      puzzle.id = `pack-${pack.id}-${String(index + 1).padStart(3, "0")}`;
-      puzzle.pack = pack.id;
-      puzzles.push(puzzle);
-      ids.push(puzzle.id);
-      density.push(Math.round(candidate.share * 100));
-    });
 
-    const made = chosen.length;
-    const mean = density.length
-      ? Math.round(density.reduce((a, b) => a + b, 0) / density.length)
-      : 0;
-    process.stderr.write(
-      `  pack ${pack.id}: ${made}/${PACK_PLAN.count} kept from ${candidates.length} candidates, ` +
-        `${themedCount} themed answers, ${mean}% themed (${density.join(",")})\n`,
-    );
-    manifest.push({ ...pack, puzzles: ids, themedAnswers: themedCount, themedPercent: mean });
+      const mean = density.length
+        ? Math.round(density.reduce((a, b) => a + b, 0) / density.length)
+        : 0;
+      process.stderr.write(
+        `  pack ${pack.id} ${plan.size}: ${chosen.length}/${plan.count} kept from ` +
+          `${candidates.length} candidates, ${mean}% themed (${density.join(",")})\n`,
+      );
+      sets.push({ size: plan.size, puzzles: ids, themedPercent: mean });
+    }
+
+    process.stderr.write(`  pack ${pack.id}: ${themedCount} themed answers\n`);
+    manifest.push({ ...pack, themedAnswers: themedCount, sets });
   }
 
   return { puzzles, manifest };

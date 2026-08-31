@@ -5,7 +5,8 @@ import { useMemo } from "react";
 import { OfflineBadge } from "@/components/OfflineBadge";
 import { OptionsMenu } from "@/components/OptionsMenu";
 import { SiteFooter } from "@/components/SiteFooter";
-import { PACKS, packPuzzles } from "@/lib/packs";
+import { PACKS, packPuzzles, setPuzzles } from "@/lib/packs";
+import { SIZES } from "@/lib/types";
 import { loadProgress } from "@/lib/storage";
 import { topicLabel } from "@/lib/topics";
 import { useStorageVersion } from "@/lib/useStorage";
@@ -38,8 +39,8 @@ export default function PacksPage() {
         <div>
           <h1 className="hero__title">Themed packs</h1>
           <p className="hero__sub">
-            Sets of micro-sized 5x5s pulled toward a handful of subjects each. Shared between both players —
-            your progress on them is saved under whoever is playing.
+            Each set is pulled toward a handful of subjects, at two grid sizes. Shared between both
+            players — your progress on them is saved under whoever is playing.
           </p>
         </div>
         <div className="hero__side">
@@ -49,38 +50,48 @@ export default function PacksPage() {
 
       {PACKS.length === 0 && <p className="muted">No packs in this build.</p>}
 
-      {PACKS.map((pack) => {
-        const puzzles = packPuzzles(pack);
-        const solved = puzzles.filter((p) => states[p.id] === "solved").length;
-        return (
-          <section className="pack" key={pack.id}>
-            <div className="pack__head">
-              <h2>{pack.name}</h2>
-              <p className="muted">{pack.blurb}</p>
-              <ul className="pack__topics">
-                {pack.topics.map((topic) => (
-                  <li key={topic}>{topicLabel(topic)}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="pack__puzzles">
-              {puzzles.map((puzzle, i) => (
-                <Link
-                  key={puzzle.id}
-                  className={`chip chip--${states[puzzle.id] ?? "new"}`}
-                  href={`/play?id=${puzzle.id}`}
-                >
-                  #{i + 1}
-                  {states[puzzle.id] === "solved" && " ✓"}
-                </Link>
+      {PACKS.map((pack) => (
+        <section className="pack" key={pack.id}>
+          <div className="pack__head">
+            <h2>{pack.name}</h2>
+            <p className="muted">{pack.blurb}</p>
+            <ul className="pack__topics">
+              {pack.topics.map((topic) => (
+                <li key={topic}>{topicLabel(topic)}</li>
               ))}
-            </div>
-            <p className="pack__meta">
-              {solved} of {puzzles.length} solved · about {pack.themedPercent}% of answers on theme
-            </p>
-          </section>
-        );
-      })}
+            </ul>
+          </div>
+
+          {/* One row per size, smallest first. */}
+          {pack.sets.map((set) => {
+            const puzzles = setPuzzles(set);
+            const solved = puzzles.filter((p) => states[p.id] === "solved").length;
+            const meta = SIZES.find((s) => s.key === set.size);
+            return (
+              <div className="pack__row" key={set.size}>
+                <div className="pack__row-head">
+                  <span className="pack__row-size">{meta?.dimensions ?? set.size}</span>
+                  <span className="pack__meta">
+                    {solved} of {puzzles.length} solved · about {set.themedPercent}% on theme
+                  </span>
+                </div>
+                <div className="pack__puzzles">
+                  {puzzles.map((puzzle, i) => (
+                    <Link
+                      key={puzzle.id}
+                      className={`chip chip--${states[puzzle.id] ?? "new"}`}
+                      href={`/play?id=${puzzle.id}`}
+                    >
+                      #{i + 1}
+                      {states[puzzle.id] === "solved" && " ✓"}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      ))}
 
       <SiteFooter />
     </main>

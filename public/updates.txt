@@ -27,3 +27,4 @@
 2026-08-30T18:00:00Z - Saved progress and stats start over: what "micro" and "mini" mean changed underneath them
 2026-08-31T12:00:00Z - New subjects for both players: the Hong Kong MTR, the MBTA, Japan Rail, the Seoul subway, Busan and the New York subway
 2026-08-31T12:00:00Z - Every MTR and MBTA station is in the answer bank, along with JR's lines and the best-known Seoul and New York stops
+2026-08-31T13:00:00Z - Every themed pack now has a row of 7x7s under its 5x5s
