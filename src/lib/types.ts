@@ -1,4 +1,4 @@
-export type PuzzleSize = "micro" | "mini" | "daily";
+export type PuzzleSize = "nano" | "micro" | "mini" | "daily";
 
 export type Direction = "across" | "down";
 
@@ -22,7 +22,7 @@ export interface Puzzle {
   /** Set when the puzzle came from a themed pack. */
   pack?: string;
   size: PuzzleSize;
-  /** 1-based index within its size, used for display ("Mini #4"). */
+  /** 1-based index within its size, used for display ("Micro #4"). */
   ordinal: number;
   rows: number;
   cols: number;
@@ -43,12 +43,14 @@ export interface SizeMeta {
 }
 
 export const SIZES: SizeMeta[] = [
-  { key: "micro", label: "Micro", blurb: "A 3x3 warm-up. Six answers, about a minute.", dimensions: "3 x 3" },
-  { key: "mini", label: "Mini", blurb: "A 5x5 coffee-break puzzle.", dimensions: "5 x 5" },
+  { key: "nano", label: "Nano", blurb: "A 3x3 warm-up. Six answers, about a minute.", dimensions: "3 x 3" },
+  { key: "micro", label: "Micro", blurb: "A 5x5 for a coffee break.", dimensions: "5 x 5" },
+  { key: "mini", label: "Mini", blurb: "A 7x7 with room to open up.", dimensions: "7 x 7" },
   { key: "daily", label: "Daily", blurb: "A full 15x15 grid to settle into.", dimensions: "15 x 15" },
 ];
 
 export const SIZE_LABEL: Record<PuzzleSize, string> = {
+  nano: "Nano",
   micro: "Micro",
   mini: "Mini",
   daily: "Daily",

@@ -104,9 +104,9 @@ export default function HomePage() {
         <div>
           <h1 className="hero__title">Crossword</h1>
           <p className="hero__sub">
-            A new micro and mini every day for {user.name}, and a fresh 15x15 each week. Everything
-            runs on your device — the timer, your progress and your stats all keep working with no
-            connection.
+            A new nano, micro and mini every day for {user.name}, and a fresh 15x15 each week.
+            Everything runs on your device — the timer, your progress and your stats all keep
+            working with no connection.
           </p>
         </div>
         <div className="hero__side">

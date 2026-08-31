@@ -46,7 +46,7 @@ const puzzles = JSON.parse(await readFile("src/data/puzzles.json", "utf8"));
 const schedule = JSON.parse(await readFile("src/data/schedule.json", "utf8"));
 const PLAYER = "clem";
 const mine = puzzles.filter((p) => p.user === PLAYER);
-const target = mine.find((p) => p.size === "micro") ?? mine[0];
+const target = mine.find((p) => p.size === "nano") ?? mine[0];
 
 const browser = await chromium.launch({ executablePath: CHROME });
 const context = await browser.newContext({
@@ -80,7 +80,7 @@ await page.waitForSelector(".today");
 await page.screenshot({ path: "/tmp/shot-home.png", fullPage: true });
 
 const todayCards = await page.locator(".tcard").count();
-check("today offers one puzzle per size", todayCards === 3, `${todayCards} cards`);
+check("today offers one puzzle per size", todayCards === 4, `${todayCards} cards`);
 
 const todayLinks = await page.locator(".tcard").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
 await page.reload({ waitUntil: "networkidle" });
@@ -99,16 +99,32 @@ const epochDays = Math.round(
     new Date(...schedule.epoch.split("-").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n)))).setHours(0, 0, 0, 0)) /
     86400000,
 );
-const expected = schedule.players[PLAYER].micro[
+const expected = schedule.players[PLAYER].nano[
   ((epochDays % schedule.days) + schedule.days) % schedule.days
 ];
 check(
-  "today's micro matches the committed schedule",
+  "today's nano matches the committed schedule",
   todayLinks.some((href) => href.endsWith(expected)),
   `${expected} in ${todayLinks.join(" ")}`,
 );
 await page.getByRole("button", { name: "Show more days" }).click();
 check("show-more extends the history", (await page.locator(".earlier__day").count()) === 28);
+
+// Every size should render at the dimensions its card advertises -- the check
+// that catches a plan and the size table drifting apart.
+const DIMS = { nano: 3, micro: 5, mini: 7, daily: 15 };
+for (const [size, dim] of Object.entries(DIMS)) {
+  const one = mine.find((p) => p.size === size);
+  if (!one) {
+    check(`the bank has a ${size}`, false, "none found");
+    continue;
+  }
+  await page.goto(`${BASE}/play?id=${one.id}`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".grid");
+  const cells = await page.locator(".grid > *").count();
+  check(`a ${size} renders ${dim}x${dim}`, cells === dim * dim, `${cells} squares`);
+}
+await page.goto(BASE, { waitUntil: "networkidle" });
 
 // --- the other player's puzzles are kept separate ---------------------------
 const theirs = puzzles.find((p) => p.user !== PLAYER);
@@ -120,7 +136,7 @@ if (theirs) {
 }
 
 // --- undo, redo, clear-incorrect and the all-clues panel --------------------
-const scratch = mine.find((p) => p.size === "mini") ?? target;
+const scratch = mine.find((p) => p.size === "micro") ?? target;
 await page.goto(`${BASE}/play?id=${scratch.id}`, { waitUntil: "networkidle" });
 await page.waitForSelector(".grid");
 

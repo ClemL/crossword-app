@@ -32,6 +32,12 @@ export const PACKS = [
     id: "sweat",
     name: "Sweat & Play",
     blurb: "Rock, fairway, mat and board — and the dog that comes along.",
-    topics: ["rock climbing", "golf", "yoga", "solidcore", "dogs", "board games"],
+    topics: ["rock climbing", "golf", "yoga", "solidcore", "dogs", "board games", "skiing", "skiing in new england"],
+  },
+  {
+    id: "legends",
+    name: "Myths & Monsters",
+    blurb: "Olympus and the underworld, and the creatures the games made of them.",
+    topics: ["greek myth", "hades (game)", "pokemon", "elden ring", "magic the gathering"],
   },
 ];

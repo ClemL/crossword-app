@@ -3,7 +3,7 @@
 // Everything the app remembers lives in localStorage, which is also what makes
 // a half-finished puzzle survive going offline and closing the tab.
 
-const NS = "crossword:v1";
+const NS = "crossword:v2";
 
 // Progress and stats are per player; the theme and the chosen player are not.
 export const KEYS = {

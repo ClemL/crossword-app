@@ -3,9 +3,9 @@ import "./globals.css";
 import { ServiceWorker } from "@/components/ServiceWorker";
 
 export const metadata: Metadata = {
-  title: "Crossword — micro, mini and daily puzzles",
+  title: "Crossword — nano, micro, mini and daily puzzles",
   description:
-    "Three sizes of crossword — a 3x3 micro, a 5x5 mini and a full 15x15 daily — with a timer, solve stats and full offline play.",
+    "Four sizes of crossword — a 3x3 nano, a 5x5 micro, a 7x7 mini and a full 15x15 daily — with a timer, solve stats and full offline play.",
   applicationName: "Crossword",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Crossword" },

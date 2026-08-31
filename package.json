@@ -11,7 +11,8 @@
     "gen:puzzles": "node scripts/generate-puzzles.mjs",
     "gen:packs": "node scripts/generate-puzzles.mjs --packs",
     "reclue": "node scripts/generate-puzzles.mjs --reclue",
-    "gen:icons": "node scripts/generate-icons.mjs"
+    "gen:icons": "node scripts/generate-icons.mjs",
+    "validate:bank": "node scripts/dev/validate-bank.mjs"
   },
   "dependencies": {
     "next": "^16.3.3",
