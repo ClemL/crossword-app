@@ -459,6 +459,12 @@ async function main() {
   }
 
   if (reclueOnly) {
+    // Pack puzzles are filed under SHARED_USER, which is nobody's bank, so
+    // without this every pack clue looks uncluable and reclue refuses to write.
+    banks.set(
+      "shared",
+      await buildLexicon({ maxTier: TIER.UNCOMMON, themes: ["shared", "clem", "lori", "packs"] }),
+    );
     await reclue(banks);
     return;
   }

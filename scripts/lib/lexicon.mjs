@@ -206,6 +206,12 @@ export async function buildLexicon({ maxTier = TIER.OBSCURE, themes = [], onlyTo
       if (wanted && !wanted.has(topic)) continue;
       for (const [word, clue] of items) {
         if (!/^[A-Z]{3,15}$/.test(word)) throw new Error(`bad themed answer: ${word}`);
+        // Dictionary clues get filtered for this in `add`; themed ones are set
+        // directly, so they need the check here. Loud rather than silent: these
+        // are hand-written, and a clue that prints its own answer is a typo.
+        if (givesItAway(word, clue)) {
+          throw new Error(`themed clue for ${word} contains it: "${clue}"`);
+        }
         const existing = entries.get(word);
         if (existing && existing.tier === TIER.THEME) {
           if (!existing.clues.includes(clue)) existing.clues.push(clue);

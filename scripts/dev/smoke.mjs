@@ -283,7 +283,12 @@ const packChips = await page.locator(".pack").first().locator(".chip").count();
 const packTotal = packs[0].sets.reduce((n, s) => n + s.puzzles.length, 0);
 check("a pack offers its puzzles", packChips === packTotal, `${packChips} of ${packTotal}`);
 const packSizes = await page.locator(".pack").first().locator(".pack__row-size").allInnerTexts();
-check("pack rows are labelled by grid size", packSizes.join(" | ") === "5 x 5 | 7 x 7", packSizes.join(" | "));
+// The label is uppercased in CSS, so innerText comes back as "5 X 5".
+check(
+  "pack rows are labelled by grid size",
+  packSizes.join(" | ").toLowerCase() === "5 x 5 | 7 x 7",
+  packSizes.join(" | "),
+);
 await page.screenshot({ path: "/tmp/shot-packs.png", fullPage: true });
 
 // A pack puzzle is shared, so it must open for either player without the

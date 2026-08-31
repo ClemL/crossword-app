@@ -56,6 +56,15 @@ Three things get a pack from the ~20% a themed 5x5 reaches by default to around 
 * **Best-of selection.** Seventy grids are filled per pack and the eight most themed are kept. This
   is the single biggest lever, and it is cheap because a 5x5 fills in a couple of seconds.
 
+The 7x7 row is the same subjects at twice the entry count, and it does **not** reach the same
+share — 21-33% against the 5x5s' 36-45%. That is a vocabulary limit, not a tuning one. Measured on
+Myths & Monsters (308 themed answers, 174 of them three to five letters), best-of-70 at eight, ten
+and twelve blocks all landed at 21-23%, and the distribution was almost flat: nearly every grid put
+exactly five of its twenty-two entries on theme, so best-of selection had nothing better to pick.
+The daily 7x7 reaches 42% on the same grid size because it draws on the whole bank (1,560 themed
+answers) rather than one pack's slice. Raising a pack's 7x7 means more vocabulary for its subjects,
+nothing else. Each row shows its own percentage on the card, so the difference is visible.
+
 Pack vocabulary lives in `scripts/lib/themes-packs.mjs` as its own theme set, so adding to it never
 changes what the committed daily bank was generated from. `npm run gen:packs` regenerates just the
 packs (a few minutes) and leaves the daily bank and schedule alone.

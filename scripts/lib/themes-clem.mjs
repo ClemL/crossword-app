@@ -17,7 +17,7 @@ export const CLEM_THEMES = {
     ["BRANCH", "Line of development"],
     ["LINT", "Tool that nags about style"],
     ["REFACTOR", "Change the shape, not the behaviour"],
-    ["RECURSION", "See: recursion"],
+    ["RECURSION", "What a function is doing when it calls itself"],
     ["POINTER", "Address, not the thing itself"],
     ["BOOLEAN", "True or false"],
     ["STRING", "Text, to a program"],

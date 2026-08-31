@@ -230,7 +230,7 @@ export const SHARED_SHORT = {
     ["LOON", "Lincoln, New Hampshire mountain named for a bird"],
     ["PICO", "Small Vermont hill beside the Beast"],
     ["JAY", "___ Peak, the snowiest corner of Vermont"],
-    ["BURKE", "East Burke's academy mountain"],
+    ["BURKE", "Academy mountain in Vermont's Northeast Kingdom"],
     ["MAGIC", "Londonderry, Vermont's throwback hill"],
     ["IKON", "Multi-mountain pass from Alterra"],
     ["EPIC", "Vail's season pass"],
