@@ -13,8 +13,8 @@ export const PACKS = [
   {
     id: "east",
     name: "The Far East",
-    blurb: "Japan, Korea, Hong Kong and Vietnam, and getting to them.",
-    topics: ["japan", "korea", "hong kong", "vietnam", "vietnamese", "travel", "united airlines"],
+    blurb: "Japan, Korea, Hong Kong and Vietnam — the cities, the food and the trains.",
+    topics: ["japan", "korea", "hong kong", "vietnam", "vietnamese", "travel", "united airlines", "japan rail", "hong kong mtr", "seoul subway", "busan"],
   },
   {
     id: "medicine",

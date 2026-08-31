@@ -126,8 +126,11 @@ public/            manifest, service worker template, icons
   (`crossword:v1:<player>:*`); the theme and the chosen player are not.
 * `scripts/lib/themes-*.mjs` — the themed answer bank: `themes-shared.mjs`, `themes-clem.mjs` and
   `themes-lori.mjs` hold the longer answers, `themes-short.mjs` the three-to-five-letter ones for
-  all three sets, and `themes-extra.mjs` later top-ups keyed by the same topic names. Adding
-  entries here is the single most effective way to raise how much of a grid comes out on-theme.
+  all three sets, and `themes-extra.mjs` later top-ups keyed by the same topic names.
+  `themes-transit.mjs` is the rail vocabulary — every MTR and MBTA station, JR's lines and the
+  best-known Seoul and New York stops — and it ships its own short list, because station names run
+  long and long answers barely move a small grid. Adding entries in these files is the single most
+  effective way to raise how much of a grid comes out on-theme.
 * `src/components/Menu.tsx` — the one dropdown, used by the hamburger and by the play toolbar. It
   becomes a sliding panel below 620px: the triggers sit against the right edge of the header, so a
   dropdown there opens into the margin and clips. It keeps the panel mounted for the length of the
