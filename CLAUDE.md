@@ -156,8 +156,9 @@ npm run dev          # local dev server
 npm run build        # next build + service-worker precache injection (run before every PR)
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint
-npm run gen:puzzles  # regenerate src/data/puzzles.json (slow: ~1.5 h, needs network once)
-npm run gen:packs    # regenerate just the themed packs (~10 min), leaving the daily bank alone
+npm run gen:puzzles  # regenerate the whole bank (slow: ~2 h, needs network once)
+npm run gen:small    # regenerate only the 3x3, 5x5 and 7x7 (~1 h), keeping the 15x15s
+npm run gen:packs    # regenerate just the themed packs (~15 min), leaving the daily bank alone
 npm run reclue       # re-pick clues for the existing grids (fast) after a clue-rule change
 npm run gen:icons    # regenerate the PNG app icons
 npm run validate:bank # check puzzles.json and schedule.json hang together
@@ -205,6 +206,11 @@ How themed a grid can get is set by how many themed answers exist at each length
 add entries to `scripts/lib/themes-short.mjs` — that is where the interlock pressure is.
 
 Sources are cached in `scripts/.cache/` (gitignored), so only the first run needs the network.
+
+The 15x15 is most of what a full run costs, so it can be left out: `npm run gen:puzzles --
+--sizes=nano,micro,mini` (or `npm run gen:small`) rebuilds only the sizes named and carries every
+other size, plus the packs, over from the committed bank. That is the difference between two hours
+and one.
 
 Filling a 15x15 takes minutes, so improving a *clue* rule should not mean regenerating puzzles whose
 grids are fine: `npm run reclue` rebuilds the answer bank and re-picks every clue in place. It
