@@ -32,6 +32,19 @@ const SEED = (() => {
   for (const ch of raw) hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
   return hash >>> 0;
 })();
+/**
+ * Which sizes to rebuild. `--sizes=nano,micro,mini` regenerates only those and
+ * keeps every other size from the bank already on disk, the way `--packs` keeps
+ * the daily bank. The 15x15 is most of the run's cost, so leaving it out is the
+ * difference between two hours and one.
+ */
+const ONLY_SIZES = (() => {
+  const arg = process.argv.find((a) => a.startsWith("--sizes="))?.slice(8);
+  if (!arg) return null;
+  const wanted = new Set(arg.split(",").map((s) => s.trim()).filter(Boolean));
+  return wanted.size ? wanted : null;
+})();
+
 const OUT = path.join(HERE, "..", "src", "data", "puzzles.json");
 const TOPICS_OUT = path.join(HERE, "..", "src", "data", "topics.json");
 const SCHEDULE_OUT = path.join(HERE, "..", "src", "data", "schedule.json");
@@ -446,6 +459,12 @@ async function main() {
   }
 
   if (reclueOnly) {
+    // Pack puzzles are filed under SHARED_USER, which is nobody's bank, so
+    // without this every pack clue looks uncluable and reclue refuses to write.
+    banks.set(
+      "shared",
+      await buildLexicon({ maxTier: TIER.UNCOMMON, themes: ["shared", "clem", "lori", "packs"] }),
+    );
     await reclue(banks);
     return;
   }
@@ -468,8 +487,24 @@ async function main() {
     return;
   }
 
-  const puzzles = [];
-  const seenGrids = new Set();
+  const plans = ONLY_SIZES ? PLANS.filter((p) => ONLY_SIZES.has(p.size)) : PLANS;
+  if (plans.length === 0) {
+    process.stderr.write(`no plans match --sizes=${[...ONLY_SIZES].join(",")}\n`);
+    process.exit(1);
+  }
+
+  // Sizes we are not rebuilding keep the puzzles already committed, so the
+  // schedule below still has something to point at for them.
+  const carried = ONLY_SIZES
+    ? JSON.parse(await readFile(OUT, "utf8")).filter((p) => !p.pack && !ONLY_SIZES.has(p.size))
+    : [];
+  if (carried.length) {
+    const kinds = [...new Set(carried.map((p) => p.size))].join(", ");
+    process.stderr.write(`keeping ${carried.length} existing puzzles (${kinds})\n`);
+  }
+
+  const puzzles = [...carried];
+  const seenGrids = new Set(carried.map((p) => p.solution.filter((c) => c !== "#").join("")));
 
   for (const user of USERS) {
     const words = banks.get(user.id);
@@ -478,7 +513,7 @@ async function main() {
     // One filler per distinct bank shape used anywhere in the ladders.
     const fillers = new Map();
     const bankKey = (rung) => `${rung.maxTier}:${rung.relaxShort ? 1 : 0}`;
-    for (const plan of PLANS) {
+    for (const plan of plans) {
       for (const rung of plan.ladder) {
         if (fillers.has(bankKey(rung))) continue;
         const allowed = words.filter(
@@ -490,7 +525,7 @@ async function main() {
       }
     }
 
-    for (const plan of PLANS) {
+    for (const plan of plans) {
       const rng = makeRng(SEED + plan.dim * 7919 + user.id.charCodeAt(0) * 104729);
       let made = 0;
       let attempts = 0;
@@ -559,15 +594,30 @@ async function main() {
   }
 
   await mkdir(path.dirname(OUT), { recursive: true });
-  await writeFile(OUT, JSON.stringify(puzzles), "utf8");
   await writeFile(
     TOPICS_OUT,
     JSON.stringify(Object.fromEntries(USERS.map((u) => [u.id, topicsOf(u.themes)])), null, 2),
     "utf8",
   );
-  const { puzzles: packPuzzles, manifest } = await buildPacks(seenGrids);
-  puzzles.push(...packPuzzles);
-  await writeFile(PACKS_OUT, JSON.stringify(manifest), "utf8");
+
+  // A partial run leaves the committed packs alone -- rebuild them with
+  // `npm run gen:packs`, which is the cheap path for them anyway.
+  if (ONLY_SIZES) {
+    const existing = JSON.parse(await readFile(OUT, "utf8")).filter((p) => p.pack);
+    puzzles.push(...existing);
+    process.stderr.write(`keeping ${existing.length} pack puzzles\n`);
+  } else {
+    const { puzzles: packPuzzles, manifest } = await buildPacks(seenGrids);
+    puzzles.push(...packPuzzles);
+    await writeFile(PACKS_OUT, JSON.stringify(manifest), "utf8");
+  }
+
+  // Written once, here, with the packs in it. Writing it before buildPacks --
+  // as this did -- left every pack puzzle out of the bank on a full run, and
+  // packs.json then pointed at ids that were not there. It went unnoticed
+  // because the packs were only ever built through `--packs`, which writes the
+  // file itself.
+  await writeFile(OUT, JSON.stringify(puzzles), "utf8");
 
   const schedule = buildSchedule(puzzles, makeRng(SEED + 31337));
   await writeFile(SCHEDULE_OUT, JSON.stringify(schedule), "utf8");
