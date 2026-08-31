@@ -8,6 +8,7 @@ import { CLEM_THEMES } from "./themes-clem.mjs";
 import { LORI_THEMES } from "./themes-lori.mjs";
 import { SHARED_SHORT, CLEM_SHORT, LORI_SHORT } from "./themes-short.mjs";
 import { SHARED_EXTRA, CLEM_EXTRA, LORI_EXTRA } from "./themes-extra.mjs";
+import { TRANSIT_THEMES, TRANSIT_SHORT } from "./themes-transit.mjs";
 import {
   PACK_THEMES,
   PACK_SHORT,
@@ -87,7 +88,7 @@ function mergeTopics(...sets) {
 }
 
 export const THEME_SETS = {
-  shared: mergeTopics(SHARED_THEMES, SHARED_SHORT, SHARED_EXTRA),
+  shared: mergeTopics(SHARED_THEMES, SHARED_SHORT, SHARED_EXTRA, TRANSIT_THEMES, TRANSIT_SHORT),
   clem: mergeTopics(CLEM_THEMES, CLEM_SHORT, CLEM_EXTRA),
   lori: mergeTopics(LORI_THEMES, LORI_SHORT, LORI_EXTRA),
   // Pack vocabulary is its own set rather than part of `shared`, so adding to
